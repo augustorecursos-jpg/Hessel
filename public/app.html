@@ -12,134 +12,158 @@
   <aside class="lateral">
     <div class="marca"><img src="/logo" alt="Hessel Domiciliar"></div>
     <nav id="menu">
-      <a href="#painel" data-secao="painel"><span class="ic">🏠</span> Painel</a>
-      <a href="#planilha" data-secao="planilha"><span class="ic">📅</span> Planilha de atendimento</a>
-      <a href="#conferencia" data-secao="conferencia"><span class="ic">📂</span> Conferência de folhas</a>
-      <div class="sep"></div>
-      <a href="#pacientes" data-secao="pacientes"><span class="ic">🧑‍🦳</span> Pacientes</a>
-      <a href="#profissionais" data-secao="profissionais"><span class="ic">🩺</span> Profissionais</a>
-      <div class="sep"></div>
-      <a href="#documentos" data-secao="documentos"><span class="ic">📄</span> Documentos e timbrado</a>
-      <a href="/admin" id="link-admin" hidden><span class="ic">⚙️</span> Administração</a>
+      <div class="grupo">Fechamento</div>
+      <a href="#painel" data-secao="painel"><i data-ic="casa"></i> Painel</a>
+      <a href="#planilha" data-secao="planilha"><i data-ic="calendario"></i> Planilha de atendimento</a>
+      <a href="#conferencia" data-secao="conferencia"><i data-ic="pasta"></i> Conferência de folhas <span class="cont" id="cont-faltando" hidden></span></a>
+      <div class="grupo">Cadastros</div>
+      <a href="#pacientes" data-secao="pacientes"><i data-ic="coracao"></i> Pacientes</a>
+      <a href="#profissionais" data-secao="profissionais"><i data-ic="estetoscopio"></i> Profissionais</a>
+      <div class="grupo">Documentos</div>
+      <a href="#documentos" data-secao="documentos"><i data-ic="documento"></i> Documentos e timbrado</a>
+      <a href="/admin" id="link-admin" hidden><i data-ic="ajustes"></i> Administração</a>
     </nav>
-    <div class="rodape">Hessel Domiciliar · fechamento de folhas</div>
+    <div class="cartao-usuario">
+      <span class="av" id="av-usuario"></span>
+      <div><b id="nome-usuario"></b><small id="perfil-usuario"></small></div>
+      <button id="btn-senha" title="Trocar senha"><i data-ic="chave"></i></button>
+      <button id="btn-sair" title="Sair"><i data-ic="sair"></i></button>
+    </div>
   </aside>
 
   <div class="principal">
     <header class="topo">
-      <div class="comp">
-        <label for="competencia"><b>Competência</b></label>
-        <input type="month" id="competencia">
-        <span class="suave" id="nome-comp"></span>
-      </div>
-      <div class="usuario">
-        <span id="nome-usuario"></span>
-        <button class="btn sec peq" id="btn-senha">Trocar senha</button>
-        <button class="btn sec peq" id="btn-sair">Sair</button>
+      <div class="ola"><b id="saudacao"></b><small id="hoje"></small></div>
+      <div class="mes" title="Competência (mês de referência)">
+        <button id="mes-ant" aria-label="Mês anterior"><i data-ic="esq"></i></button>
+        <label><i data-ic="calendario"></i><span><small>Competência</small><span id="nome-comp"></span></span>
+          <input type="month" id="competencia" aria-label="Competência"></label>
+        <button id="mes-prox" aria-label="Próximo mês"><i data-ic="dir"></i></button>
       </div>
     </header>
 
     <main class="conteudo">
       <!-- ================= PAINEL ================= -->
-      <section id="sec-painel" data-secao="painel" hidden>
-        <div class="cab-secao">
-          <div><h1>Painel</h1><p>Resumo do fechamento da competência selecionada.</p></div>
-        </div>
-        <div class="aviso-box alerta" id="aviso-senha-padrao" hidden>
-          Você está usando a senha inicial do administrador. <a href="#" id="link-trocar-senha">Troque agora</a>.
-        </div>
-        <div class="cards" id="kpis"></div>
-        <div class="cartao">
-          <div class="linha entre"><h2 style="margin:0">Folhas da competência</h2><span id="progresso-txt" class="suave"></span></div>
-          <div class="barra" style="margin:.8em 0"><span id="progresso" style="width:0"></span></div>
-          <div class="linha">
-            <a class="btn" href="#conferencia">📂 Conferir pasta de folhas</a>
-            <a class="btn sec" href="#planilha">📅 Abrir planilha de atendimento</a>
+      <section data-secao="painel" hidden>
+        <div class="hero">
+          <img class="deco" src="img/favicon.svg" alt="">
+          <div>
+            <span class="selo"><i data-ic="coracao"></i> Visão geral</span>
+            <h1>Fechamento de <span id="painel-mes"></span></h1>
+            <p>Acompanhe as folhas recebidas, o que ainda falta e os atendimentos lançados no mês.</p>
+          </div>
+          <div class="acoes">
+            <a class="btn" href="#conferencia"><i data-ic="pasta"></i> Conferir pasta</a>
+            <a class="btn sec" href="#planilha"><i data-ic="calendario"></i> Abrir planilha</a>
           </div>
         </div>
-        <div class="cartao">
-          <h2>Folhas que ainda faltam</h2>
-          <div id="painel-faltando"></div>
+        <div class="aviso-box alerta" id="aviso-senha-padrao" hidden>
+          <i data-ic="alerta"></i> <span>Você está usando a senha inicial do administrador. <a href="#" id="link-trocar-senha">Troque agora</a>.</span>
         </div>
-        <div class="cartao">
-          <h2>Últimas competências</h2>
-          <div id="painel-historico"></div>
+        <div class="painel-topo">
+          <div class="cartao progresso-folhas" id="painel-anel"></div>
+          <div class="cards" id="kpis"></div>
+        </div>
+        <div class="duas-col">
+          <div class="cartao">
+            <div class="cartao-cab"><h2><span class="bolha coral"><i data-ic="docX"></i></span> Folhas que ainda faltam</h2>
+              <a class="btn sec peq" href="#conferencia">Ver conferência <i data-ic="dir"></i></a></div>
+            <div id="painel-faltando"></div>
+          </div>
+          <div>
+            <div class="cartao">
+              <div class="cartao-cab"><h2><span class="bolha"><i data-ic="prancheta"></i></span> Passo a passo do mês</h2></div>
+              <ol class="passos" id="painel-passos"></ol>
+            </div>
+            <div class="cartao">
+              <div class="cartao-cab"><h2><span class="bolha azul"><i data-ic="atividade"></i></span> Últimas competências</h2></div>
+              <div id="painel-historico"></div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- ================= PLANILHA ================= -->
-      <section id="sec-planilha" data-secao="planilha" hidden>
-        <div class="cab-secao">
+      <section data-secao="planilha" hidden>
+        <div class="hero">
+          <img class="deco" src="img/favicon.svg" alt="">
           <div>
+            <span class="selo"><i data-ic="calendario"></i> <span id="pl-mes"></span></span>
             <h1>Planilha de atendimento</h1>
-            <p>Uma linha por paciente + profissional. Preencha cada dia com a quantidade de atendimentos (ou <b>X</b>). Tudo é salvo automaticamente.</p>
+            <p>Uma linha por paciente + profissional. Preencha cada dia com a quantidade de atendimentos — tudo é salvo automaticamente.</p>
           </div>
-          <div class="linha">
-            <button class="btn" id="pl-adicionar">＋ Adicionar linha</button>
-            <button class="btn sec" id="pl-copiar">Copiar do mês anterior</button>
-            <button class="btn sec" id="pl-xlsx">⬇ Excel</button>
-            <button class="btn sec" id="pl-pdf">⬇ PDF timbrado</button>
+          <div class="acoes">
+            <button class="btn" id="pl-adicionar"><i data-ic="mais"></i> Adicionar linha</button>
+            <button class="btn sec" id="pl-copiar"><i data-ic="copiar"></i> Copiar do mês anterior</button>
           </div>
         </div>
-        <div class="linha" style="margin-bottom:.7em">
-          <input type="search" id="pl-busca" placeholder="Filtrar por paciente ou profissional…" class="cresce" style="max-width:420px">
+        <div class="barra-ferr">
+          <div class="busca cresce" style="max-width:420px"><i data-ic="busca"></i><input type="search" id="pl-busca" placeholder="Filtrar por paciente ou profissional…"></div>
           <span class="suave" id="pl-info"></span>
+          <span class="cresce"></span>
+          <button class="btn sec" id="pl-xlsx"><i data-ic="planilha"></i> Excel</button>
+          <button class="btn sec" id="pl-pdf"><i data-ic="baixar"></i> PDF timbrado</button>
         </div>
-        <div class="planilha-wrap" id="pl-wrap"></div>
-        <div class="legenda">
-          <span><b>1, 2, 3…</b> quantidade de atendimentos no dia</span>
-          <span><b>X</b> = 1 atendimento</span>
-          <span><b>F</b> falta · <b>FE</b> férias · <b>A</b> afastado (outras letras não somam)</span>
-          <span>Colunas em rosa = fim de semana</span>
-          <span><b>Folha</b>: ✔ recebida na pasta</span>
-          <span>Use as setas do teclado ou Enter para navegar</span>
+        <div id="pl-wrap"></div>
+        <div class="legenda" id="pl-legenda">
+          <span><span class="amostra c">1</span> quantidade de atendimentos</span>
+          <span><span class="amostra c">X</span> = 1 atendimento</span>
+          <span><span class="amostra k">F</span> falta · <b>FE</b> férias · <b>A</b> afastado (não somam)</span>
+          <span><span class="amostra w"></span> fim de semana</span>
+          <span><i data-ic="docOk"></i> folha recebida</span>
+          <span><i data-ic="terminal"></i> setas ou Enter para navegar</span>
         </div>
       </section>
 
       <!-- ================= CONFERÊNCIA ================= -->
-      <section id="sec-conferencia" data-secao="conferencia" hidden>
-        <div class="cab-secao">
+      <section data-secao="conferencia" hidden>
+        <div class="hero">
+          <img class="deco" src="img/favicon.svg" alt="">
           <div>
+            <span class="selo"><i data-ic="pasta"></i> <span id="cf-mes"></span></span>
             <h1>Conferência de folhas</h1>
-            <p>Compara os arquivos da pasta com a planilha de atendimento da competência e com os cadastros.
-              Padrão do nome: <code>Paciente NOME DO PACIENTE - Profissional NOME DO PROFISSIONAL.pdf</code></p>
+            <p>Compare a pasta onde você salvou as folhas com a planilha de atendimento e os cadastros: veja o que falta subir e o que está com nome errado.</p>
           </div>
         </div>
 
+        <div class="padrao-nome"><i data-ic="etiqueta"></i> Padrão do nome do arquivo:
+          <code><b>Paciente</b> NOME DO PACIENTE <b>-</b> <b>Profissional</b> NOME DO PROFISSIONAL.pdf</code></div>
+
         <div class="cartao">
           <div class="soltar" id="cf-soltar">
-            <p style="font-size:1.6rem;margin:0">📂</p>
-            <p><b>Selecione a pasta onde você salvou as folhas</b> ou arraste os arquivos para cá.</p>
-            <p class="suave">Os arquivos <b>não são enviados</b>: o sistema lê só os nomes, no seu computador.</p>
-            <div class="linha" style="justify-content:center;margin-top:.8em">
-              <label class="btn"><input type="file" id="cf-pasta" webkitdirectory multiple hidden> Escolher pasta</label>
-              <label class="btn sec"><input type="file" id="cf-arquivos" multiple hidden> Escolher arquivos</label>
-              <button class="btn sec" id="cf-colar">Colar lista de nomes</button>
+            <div class="icone-grande"><i data-ic="pastaAberta"></i></div>
+            <h3>Selecione a pasta das folhas ou arraste os arquivos para cá</h3>
+            <p>A conferência é instantânea e fica registrada para o mês selecionado.</p>
+            <div class="linha" style="justify-content:center;margin-top:1.1em">
+              <label class="btn"><input type="file" id="cf-pasta" webkitdirectory multiple hidden><i data-ic="pasta"></i> Escolher pasta</label>
+              <label class="btn sec"><input type="file" id="cf-arquivos" multiple hidden><i data-ic="arquivos"></i> Escolher arquivos</label>
+              <button class="btn sec" id="cf-colar"><i data-ic="prancheta"></i> Colar lista de nomes</button>
             </div>
+            <span class="privado"><i data-ic="cadeado"></i> Os arquivos não são enviados — só os nomes são lidos, no seu computador.</span>
           </div>
-          <p class="suave" id="cf-ultima" style="margin:.8em 0 0"></p>
+          <p class="suave" id="cf-ultima" style="margin:1em 0 0;display:flex;gap:.5em;align-items:center"></p>
         </div>
 
         <div id="cf-resultado" hidden>
           <div class="cards" id="cf-kpis"></div>
           <div class="cartao">
-            <div class="linha entre">
-              <h2 style="margin:0">Folhas que faltam subir</h2>
+            <div class="cartao-cab">
+              <div><h2><span class="bolha coral"><i data-ic="docX"></i></span> Folhas que faltam subir</h2>
+                <p>Duplas da planilha sem arquivo na pasta. Use <b>Copiar nome</b> ao salvar o anexo do e-mail.</p></div>
               <div class="linha">
-                <button class="btn sec peq" id="cf-falt-xlsx">⬇ Excel</button>
-                <button class="btn sec peq" id="cf-falt-pdf">⬇ PDF timbrado</button>
+                <button class="btn sec peq" id="cf-falt-xlsx"><i data-ic="planilha"></i> Excel</button>
+                <button class="btn sec peq" id="cf-falt-pdf"><i data-ic="baixar"></i> PDF timbrado</button>
               </div>
             </div>
-            <p class="suave">Duplas da planilha de atendimento sem arquivo na pasta. Use <b>Copiar nome</b> ao salvar o anexo do e-mail.</p>
             <div id="cf-faltando"></div>
           </div>
           <div class="cartao">
-            <div class="linha entre">
-              <h2 style="margin:0">Arquivos da pasta</h2>
+            <div class="cartao-cab">
+              <h2><span class="bolha"><i data-ic="arquivos"></i></span> Arquivos da pasta</h2>
               <div class="linha">
-                <button class="btn sec peq" id="cf-bat" title="Gera um arquivo .bat que renomeia os arquivos para o nome sugerido">⬇ Script para renomear</button>
-                <button class="btn sec peq" id="cf-xlsx">⬇ Excel</button>
-                <button class="btn sec peq" id="cf-pdf">⬇ PDF timbrado</button>
+                <button class="btn sec peq" id="cf-bat" title="Gera um arquivo .bat que renomeia os arquivos para o nome sugerido"><i data-ic="terminal"></i> Script para renomear</button>
+                <button class="btn sec peq" id="cf-xlsx"><i data-ic="planilha"></i> Excel</button>
+                <button class="btn sec peq" id="cf-pdf"><i data-ic="baixar"></i> PDF timbrado</button>
               </div>
             </div>
             <div class="filtros" id="cf-filtros"></div>
@@ -147,9 +171,11 @@
           </div>
         </div>
 
-        <div class="cartao" id="cf-manual">
-          <h2>Situação registrada no sistema</h2>
-          <p class="suave">Resultado da última conferência salva. Você também pode marcar uma folha como recebida manualmente.</p>
+        <div class="cartao">
+          <div class="cartao-cab">
+            <div><h2><span class="bolha verde"><i data-ic="escudo"></i></span> Situação registrada no sistema</h2>
+              <p>Resultado da última conferência salva. Você também pode marcar uma folha como recebida manualmente.</p></div>
+          </div>
           <div id="cf-registro"></div>
         </div>
       </section>
@@ -159,22 +185,31 @@
       <section id="sec-profissionais" data-secao="profissionais" hidden></section>
 
       <!-- ================= DOCUMENTOS ================= -->
-      <section id="sec-documentos" data-secao="documentos" hidden>
-        <div class="cab-secao">
-          <div><h1>Documentos e papel timbrado</h1><p>Gere papel timbrado em branco ou escreva ofícios, declarações e comunicados já no timbrado da Hessel.</p></div>
+      <section data-secao="documentos" hidden>
+        <div class="hero">
+          <img class="deco" src="img/favicon.svg" alt="">
+          <div>
+            <span class="selo"><i data-ic="documento"></i> Papel timbrado</span>
+            <h1>Documentos e timbrado</h1>
+            <p>Gere papel timbrado em branco ou escreva ofícios, declarações e comunicados já com a identidade da Hessel.</p>
+          </div>
         </div>
-        <div class="cartao">
-          <h2>Papel timbrado em branco</h2>
-          <div class="linha">
-            <select id="tb-orientacao" style="width:auto"><option value="retrato">A4 retrato</option><option value="paisagem">A4 paisagem</option></select>
-            <select id="tb-paginas" style="width:auto"><option value="1">1 página</option><option value="2">2 páginas</option><option value="5">5 páginas</option><option value="10">10 páginas</option></select>
-            <button class="btn" id="tb-gerar">⬇ Gerar PDF</button>
+        <div class="cartao timbrado-cartao">
+          <div class="folha-mini"><img src="/logo" alt=""><i></i><i></i><i></i><i></i><i></i></div>
+          <div>
+            <h2>Papel timbrado em branco</h2>
+            <p class="suave" style="margin-top:0">Cabeçalho com o logo e os dados da empresa, rodapé com endereço e marca d'água suave.</p>
+            <div class="linha">
+              <select id="tb-orientacao" style="width:auto"><option value="retrato">A4 retrato</option><option value="paisagem">A4 paisagem</option></select>
+              <select id="tb-paginas" style="width:auto"><option value="1">1 página</option><option value="2">2 páginas</option><option value="5">5 páginas</option><option value="10">10 páginas</option></select>
+              <button class="btn" id="tb-gerar"><i data-ic="baixar"></i> Gerar PDF</button>
+            </div>
           </div>
         </div>
         <div class="doc-grid">
           <div class="cartao">
-            <div class="linha entre"><h3 style="margin:0">Documentos salvos</h3><button class="btn peq" id="doc-novo">＋ Novo</button></div>
-            <input type="search" id="doc-busca" placeholder="Buscar…" style="margin:.7em 0">
+            <div class="cartao-cab"><h3 style="margin:0">Documentos salvos</h3><button class="btn peq" id="doc-novo"><i data-ic="mais"></i> Novo</button></div>
+            <div class="busca" style="margin-bottom:.8em"><i data-ic="busca"></i><input type="search" id="doc-busca" placeholder="Buscar…"></div>
             <div class="lista-docs" id="doc-lista"></div>
           </div>
           <div class="cartao">
@@ -190,10 +225,10 @@
                 <div><label class="rotulo" for="doc-local">Local e data <small>(vazio = data de hoje)</small></label><input type="text" id="doc-local" placeholder="São Paulo, 5 de outubro de 2026"></div>
                 <div><label class="rotulo" for="doc-ass">Assinatura <small>(nome na 1ª linha, cargo na 2ª)</small></label><textarea id="doc-ass" style="min-height:3.5em"></textarea></div>
               </div>
-              <div class="linha fim" style="margin-top:1em">
-                <button type="button" class="btn perigo" id="doc-excluir" hidden>Excluir</button>
-                <button type="button" class="btn sec" id="doc-previa">👁 Pré-visualizar PDF</button>
-                <button type="submit" class="btn">Salvar</button>
+              <div class="linha fim" style="margin-top:1.2em">
+                <button type="button" class="btn perigo" id="doc-excluir" hidden><i data-ic="lixo"></i> Excluir</button>
+                <button type="button" class="btn sec" id="doc-previa"><i data-ic="olho"></i> Pré-visualizar PDF</button>
+                <button type="submit" class="btn"><i data-ic="check"></i> Salvar</button>
               </div>
             </form>
           </div>

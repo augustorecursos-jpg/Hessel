@@ -14,20 +14,31 @@ const estado = {
     estado.eu = await api('/api/eu');
   } catch { return; }
   $('#nome-usuario').textContent = estado.eu.nome;
+  $('#perfil-usuario').textContent = estado.eu.perfil === 'admin' ? 'Administrador' : 'Operador';
+  $('#av-usuario').textContent = iniciais(estado.eu.nome);
+  $('#saudacao').textContent = `${saudacao()}, ${estado.eu.nome.split(' ')[0]}!`;
+  $('#hoje').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   $('#link-admin').hidden = estado.eu.perfil !== 'admin';
   $('#aviso-senha-padrao').hidden = !estado.eu.padrao;
   estado.cfg = await api('/api/config');
 
   const inp = $('#competencia');
-  inp.value = estado.comp;
-  $('#nome-comp').textContent = nomeCompetencia(estado.comp);
-  inp.addEventListener('change', () => {
-    if (!/^\d{4}-\d{2}$/.test(inp.value)) return;
-    estado.comp = inp.value;
-    lsGravar('hessel.competencia', estado.comp);
-    $('#nome-comp').textContent = nomeCompetencia(estado.comp);
+  const mudarComp = (c) => {
+    if (!/^\d{4}-\d{2}$/.test(c)) return;
+    estado.comp = c;
+    inp.value = c;
+    lsGravar('hessel.competencia', c);
+    atualizarRotulosMes();
     cfResultado = null;
     abrirSecao(estado.secao, true);
+  };
+  inp.value = estado.comp;
+  atualizarRotulosMes();
+  inp.addEventListener('change', () => mudarComp(inp.value));
+  $('#mes-ant').addEventListener('click', () => mudarComp(competenciaAnterior(estado.comp)));
+  $('#mes-prox').addEventListener('click', () => {
+    const [a, m] = estado.comp.split('-').map(Number);
+    mudarComp(m === 12 ? `${a + 1}-01` : `${a}-${String(m + 1).padStart(2, '0')}`);
   });
 
   $('#btn-sair').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }); location.href = '/'; });
@@ -35,9 +46,25 @@ const estado = {
   $('#link-trocar-senha').addEventListener('click', (e) => { e.preventDefault(); trocarSenha(); });
 
   await carregarCadastros();
+  atualizarContadorRemoto();
   window.addEventListener('hashchange', () => abrirSecao(location.hash.slice(1)));
   abrirSecao(location.hash.slice(1) || 'painel');
 })();
+
+const mesCapitalizado = (c) => { const n = nomeCompetencia(c); return n[0].toUpperCase() + n.slice(1); };
+
+function atualizarRotulosMes() {
+  const n = mesCapitalizado(estado.comp);
+  $('#nome-comp').textContent = n;
+  ['#painel-mes', '#pl-mes', '#cf-mes'].forEach((s) => { $(s).textContent = s === '#painel-mes' ? nomeCompetencia(estado.comp) : n; });
+}
+
+/** Número de folhas faltando no menu lateral. */
+function atualizarContador(faltando) {
+  const el = $('#cont-faltando');
+  el.textContent = faltando;
+  el.hidden = !faltando;
+}
 
 async function carregarCadastros() {
   [estado.pacientes, estado.profissionais] = await Promise.all([api('/api/pacientes'), api('/api/profissionais')]);
@@ -87,36 +114,60 @@ const tituloEmpresa = () => estado.cfg.empresa_nome || 'Hessel Domiciliar';
 const nomeArquivoComp = (prefixo) => `${prefixo} - ${estado.comp}`;
 
 // ================= PAINEL =================
+function kpi({ rot, val, det = '', icone, cor = '' }) {
+  return `<div class="kpi ${cor}"><div class="topo-kpi"><span class="rot">${rot}</span><span class="bolha ${cor}">${ic(icone)}</span></div>
+    <div class="val">${val}</div>${det ? `<div class="det">${det}</div>` : ''}</div>`;
+}
+
+async function atualizarContadorRemoto() {
+  try { atualizarContador((await api(`/api/painel?competencia=${estado.comp}`)).faltando.length); } catch { /* ignora */ }
+}
+
 async function carregarPainel() {
   const p = await api(`/api/painel?competencia=${estado.comp}`);
-  const pct = p.linhas ? Math.round((p.recebidas / p.linhas) * 100) : 0;
-  $('#kpis').innerHTML = `
-    <div class="kpi"><div class="rot">Pacientes ativos</div><div class="val">${p.pacientes}</div></div>
-    <div class="kpi"><div class="rot">Profissionais ativos</div><div class="val">${p.profissionais}</div></div>
-    <div class="kpi"><div class="rot">Linhas na planilha</div><div class="val">${p.linhas}</div><div class="det">paciente + profissional</div></div>
-    <div class="kpi"><div class="rot">Atendimentos lançados</div><div class="val">${p.atendimentos.toLocaleString('pt-BR')}</div></div>
-    <div class="kpi"><div class="rot">Folhas recebidas</div><div class="val">${p.recebidas}<small style="font-size:1rem"> / ${p.linhas}</small></div></div>
-    <div class="kpi ${p.faltando.length ? 'alerta' : ''}"><div class="rot">Folhas faltando</div><div class="val">${p.faltando.length}</div></div>`;
-  $('#progresso').style.width = `${pct}%`;
-  $('#progresso-txt').textContent = p.linhas
-    ? `${pct}% recebidas${p.ultimaConferencia ? ` · última conferência em ${dataBR(p.ultimaConferencia.criado_em)}` : ' · pasta ainda não conferida'}`
-    : 'Planilha de atendimento vazia nesta competência';
+  atualizarContador(p.faltando.length);
+  const pct = p.linhas ? (p.recebidas / p.linhas) * 100 : 0;
+
+  $('#painel-anel').innerHTML = `${anel(pct)}
+    <div class="info">
+      <h2>Folhas do mês</h2>
+      <p>${p.linhas
+        ? `<b>${p.recebidas}</b> de <b>${p.linhas}</b> folhas recebidas.${p.ultimaConferencia ? `<br>Última conferência: ${esc(dataBR(p.ultimaConferencia.criado_em))}` : '<br>A pasta ainda não foi conferida.'}`
+        : 'A planilha deste mês ainda está vazia.'}</p>
+      <div class="legenda-anel"><span><i></i> Recebidas ${p.recebidas}</span><span><i class="f"></i> Faltando ${p.faltando.length}</span></div>
+      <a class="btn peq" href="#conferencia">${ic('pasta')} Conferir agora</a>
+    </div>`;
+
+  $('#kpis').innerHTML = [
+    kpi({ rot: 'Pacientes ativos', val: p.pacientes, icone: 'coracao', cor: 'coral', det: 'em atendimento domiciliar' }),
+    kpi({ rot: 'Profissionais', val: p.profissionais, icone: 'estetoscopio', det: 'prestadores ativos' }),
+    kpi({ rot: 'Atendimentos', val: p.atendimentos.toLocaleString('pt-BR'), icone: 'atividade', cor: 'azul', det: `lançados em ${nomeCompetencia(estado.comp).split(' ')[0]}` }),
+    kpi({ rot: 'Linhas na planilha', val: p.linhas, icone: 'tabela', cor: 'ambar', det: 'paciente + profissional' }),
+  ].join('');
 
   $('#painel-faltando').innerHTML = !p.linhas
-    ? `<p class="suave">Monte a <a href="#planilha">planilha de atendimento</a> de ${nomeCompetencia(estado.comp)} para saber quais folhas esperar.</p>`
+    ? vazio({ ilustra: 'calendario', titulo: 'Nenhuma folha esperada ainda', texto: `Monte a planilha de atendimento de ${esc(nomeCompetencia(estado.comp))} para o sistema saber quais folhas esperar.`, acoes: `<a class="btn" href="#planilha">${ic('calendario')} Montar planilha</a>` })
     : !p.faltando.length
-      ? '<p><span class="tag ok">Tudo certo</span> Todas as folhas da planilha foram recebidas.</p>'
-      : `<div class="tabela-wrap"><table class="t"><thead><tr><th>Paciente</th><th>Profissional</th></tr></thead><tbody>
-          ${p.faltando.slice(0, 15).map((f) => `<tr><td>${esc(f.paciente)}</td><td>${esc(f.profissional)}</td></tr>`).join('')}
-        </tbody></table></div>${p.faltando.length > 15 ? `<p class="suave">… e mais ${p.faltando.length - 15}. Veja todas em <a href="#conferencia">Conferência de folhas</a>.</p>` : ''}`;
+      ? vazio({ ilustra: 'pasta', titulo: 'Tudo certo por aqui!', texto: 'Todas as folhas da planilha foram recebidas.' })
+      : `<div class="lista-faltando">${p.faltando.slice(0, 10).map((f) => `<div class="item">${pessoa(f.paciente, 'Paciente')}${pessoa(f.profissional, 'Profissional')}
+          <span class="tag erro">${ic('docX')} Faltando</span></div>`).join('')}</div>
+        ${p.faltando.length > 10 ? `<p class="suave" style="margin-bottom:0">… e mais ${p.faltando.length - 10}. <a href="#conferencia">Ver todas</a></p>` : ''}`;
 
-  $('#painel-historico').innerHTML = !p.historico.length ? '<p class="suave">Nenhuma competência registrada ainda.</p>'
-    : `<div class="tabela-wrap"><table class="t"><thead><tr><th>Competência</th><th>Folhas esperadas</th><th>Recebidas</th><th style="width:40%">Progresso</th></tr></thead><tbody>
-      ${p.historico.map((h) => {
+  const passos = [
+    { feito: p.pacientes > 0 && p.profissionais > 0, titulo: 'Cadastros em dia', texto: 'Pacientes e profissionais cadastrados', link: '#pacientes' },
+    { feito: p.linhas > 0, titulo: 'Montar a planilha de atendimento', texto: 'Uma linha por paciente + profissional', link: '#planilha' },
+    { feito: !!p.ultimaConferencia, titulo: 'Conferir a pasta de folhas', texto: 'Ver o que falta e o que está com nome errado', link: '#conferencia' },
+    { feito: p.linhas > 0 && !p.faltando.length, titulo: 'Todas as folhas recebidas', texto: 'Pronto para exportar e enviar', link: '#planilha' },
+  ];
+  $('#painel-passos').innerHTML = passos.map((x, i) => `<li class="${x.feito ? 'feito' : ''}"><span class="n">${x.feito ? ic('check') : i + 1}</span>
+    <a href="${x.link}"><b>${x.titulo}</b><small>${x.texto}</small></a></li>`).join('');
+
+  $('#painel-historico').innerHTML = !p.historico.length ? '<p class="suave" style="margin:0">Nenhuma competência registrada ainda.</p>'
+    : `<div class="lista-faltando">${p.historico.map((h) => {
         const pc = h.esperadas ? Math.round((h.recebidas / h.esperadas) * 100) : 0;
-        return `<tr><td><a href="#" data-comp="${h.competencia}">${esc(nomeCompetencia(h.competencia))}</a></td><td>${h.esperadas}</td><td>${h.recebidas}</td>
-          <td><div class="linha"><div class="barra cresce"><span style="width:${pc}%"></span></div><small>${pc}%</small></div></td></tr>`;
-      }).join('')}</tbody></table></div>`;
+        return `<div class="item" style="grid-template-columns:8.5em 1fr auto"><a href="#" data-comp="${h.competencia}"><b>${esc(mesCapitalizado(h.competencia))}</b></a>
+          <div class="barra"><span style="width:${pc}%"></span></div><small><b>${h.recebidas}</b>/${h.esperadas}</small></div>`;
+      }).join('')}</div>`;
   $$('#painel-historico [data-comp]').forEach((a) => a.addEventListener('click', (e) => {
     e.preventDefault();
     $('#competencia').value = a.dataset.comp;
@@ -146,40 +197,50 @@ function renderPlanilha() {
   const busca = Conferencia.normalizar($('#pl-busca').value);
   const visiveis = plLinhas.filter((l) => !busca || Conferencia.normalizar(`${l.paciente} ${l.profissional}`).includes(busca));
   const fds = (d) => [0, 6].includes(diaDaSemana(estado.comp, d));
+  const hoje = new Date();
+  const diaHoje = estado.comp === competenciaAtual() ? hoje.getDate() : 0;
+  const classe = (d) => [fds(d) ? 'fds' : '', d === diaHoje ? 'hoje' : ''].join(' ').trim();
 
-  $('#pl-info').textContent = `${plLinhas.length} linha(s) em ${nomeCompetencia(estado.comp)}${busca ? ` · ${visiveis.length} no filtro` : ''}`;
+  $('#pl-info').textContent = plLinhas.length ? `${plLinhas.length} linha(s)${busca ? ` · ${visiveis.length} no filtro` : ''}` : '';
+  $('#pl-legenda').hidden = !plLinhas.length;
+  const wrap = $('#pl-wrap');
   if (!plLinhas.length) {
-    $('#pl-wrap').innerHTML = `<div class="vazio">
-      <p>A planilha de ${esc(nomeCompetencia(estado.comp))} ainda está vazia.</p>
-      <p><button class="btn" onclick="$('#pl-adicionar').click()">＋ Adicionar linha</button>
-      <button class="btn sec" onclick="$('#pl-copiar').click()">Copiar do mês anterior</button></p></div>`;
+    wrap.className = 'cartao';
+    wrap.innerHTML = vazio({
+      ilustra: 'calendario',
+      titulo: `A planilha de ${nomeCompetencia(estado.comp)} ainda está vazia`,
+      texto: 'Adicione as duplas paciente + profissional atendidas no mês, ou aproveite as do mês anterior com um clique.',
+      acoes: `<button class="btn" onclick="$('#pl-adicionar').click()">${ic('mais')} Adicionar linha</button>
+        <button class="btn sec" onclick="$('#pl-copiar').click()">${ic('copiar')} Copiar do mês anterior</button>`,
+    });
     return;
   }
+  wrap.className = 'planilha-wrap';
 
   const cabDias = Array.from({ length: n }, (_, i) => {
     const d = i + 1;
-    return `<th class="${fds(d) ? 'fds' : ''}">${d}<small>${DIAS_SEMANA[diaDaSemana(estado.comp, d)]}</small></th>`;
+    return `<th class="${classe(d)}" ${d === diaHoje ? 'title="Hoje"' : ''}>${d}<small>${DIAS_SEMANA[diaDaSemana(estado.comp, d)]}</small></th>`;
   }).join('');
 
   const corpo = visiveis.map((l) => {
     const dias = Array.from({ length: n }, (_, i) => {
       const d = i + 1, v = l.dias[d] || '';
-      return `<td class="${fds(d) ? 'fds' : ''}"><input class="dia ${classeDia(v)}" data-id="${l.id}" data-dia="${d}" value="${esc(v)}" maxlength="4" aria-label="Dia ${d}"></td>`;
+      return `<td class="${classe(d)}"><input class="dia ${classeDia(v)}" data-id="${l.id}" data-dia="${d}" value="${esc(v)}" maxlength="4" aria-label="Dia ${d}"></td>`;
     }).join('');
     const folha = l.folha_origem
-      ? `<span class="tag ok" title="${esc(l.folha_arquivo || 'Marcada manualmente')}">✔</span>`
+      ? `<span class="tag ok" title="${esc(l.folha_arquivo || 'Marcada manualmente')}">${ic('check')}</span>`
       : '<span class="tag neutra" title="Folha ainda não recebida">—</span>';
     return `<tr data-id="${l.id}">
-      <td class="fixa c1 nome" title="${esc(l.paciente)}">${esc(l.paciente)}</td>
-      <td class="fixa c2 nome" title="${esc(l.profissional)}">${esc(l.profissional)}${l.categoria ? `<small class="suave">${esc(l.categoria)}</small>` : ''}</td>
+      <td class="fixa c1" title="${esc(l.paciente)}">${pessoa(l.paciente)}</td>
+      <td class="fixa c2" title="${esc(l.profissional)}">${pessoa(l.profissional, l.categoria || '')}</td>
       ${dias}
       <td class="total" data-total="${l.id}">${fmtNum(totalLinha(l))}</td>
       <td class="folha">${folha}</td>
-      <td class="acoes"><button class="btn perigo peq icone" data-remover="${l.id}" title="Remover linha">✕</button></td>
+      <td class="acoes"><button class="btn fantasma peq icone" data-remover="${l.id}" title="Remover linha">${ic('lixo')}</button></td>
     </tr>`;
   }).join('');
 
-  $('#pl-wrap').innerHTML = `<table class="planilha">
+  wrap.innerHTML = `<table class="planilha">
     <thead><tr><th class="fixa c1">Paciente</th><th class="fixa c2">Profissional</th>${cabDias}<th>Total</th><th>Folha</th><th></th></tr></thead>
     <tbody>${corpo}</tbody>
     <tfoot><tr><td class="fixa c1">Total do dia</td><td class="fixa c2"></td>
@@ -354,19 +415,19 @@ $('#pl-pdf').addEventListener('click', () => {
 let cfResultado = null;
 let cfFiltro = 'todos';
 const STATUS = {
-  ok: ['ok', 'Correto'],
-  grafia: ['aviso', 'Grafia diferente'],
-  fora_padrao: ['aviso', 'Fora do padrão'],
-  nao_cadastrado: ['erro', 'Não cadastrado'],
-  sem_planilha: ['info', 'Fora da planilha'],
-  duplicado: ['erro', 'Duplicado'],
+  ok: ['ok', 'Correto', 'check'],
+  grafia: ['aviso', 'Grafia diferente', 'editar'],
+  fora_padrao: ['aviso', 'Fora do padrão', 'alerta'],
+  nao_cadastrado: ['erro', 'Não cadastrado', 'usuario'],
+  sem_planilha: ['azul', 'Fora da planilha', 'tabela'],
+  duplicado: ['erro', 'Duplicado', 'copiar'],
 };
 
 async function carregarConferencia() {
   const { folhas, ultima } = await api(`/api/folhas?competencia=${estado.comp}`);
-  $('#cf-ultima').textContent = ultima
+  $('#cf-ultima').innerHTML = ic('relogio') + esc(ultima
     ? `Última conferência de ${nomeCompetencia(estado.comp)}: ${dataBR(ultima.criado_em)} por ${ultima.usuario} — ${ultima.total_arquivos} arquivo(s), ${ultima.faltando} faltando.`
-    : `Nenhuma conferência registrada para ${nomeCompetencia(estado.comp)}.`;
+    : `Nenhuma conferência registrada para ${nomeCompetencia(estado.comp)} ainda.`);
   $('#cf-resultado').hidden = !cfResultado;
   if (cfResultado) renderResultado();
   await renderRegistro(folhas);
@@ -376,23 +437,26 @@ async function renderRegistro(folhas) {
   if (!folhas) folhas = (await api(`/api/folhas?competencia=${estado.comp}`)).folhas;
   const linhas = await api(`/api/atendimentos?competencia=${estado.comp}`);
   if (!linhas.length) {
-    $('#cf-registro').innerHTML = `<p class="suave">A planilha de atendimento de ${esc(nomeCompetencia(estado.comp))} está vazia — é ela que diz quais folhas são esperadas. <a href="#planilha">Montar planilha</a>.</p>`;
+    $('#cf-registro').innerHTML = vazio({ ilustra: 'calendario', titulo: 'Nenhuma folha esperada neste mês',
+      texto: `A planilha de atendimento de ${esc(nomeCompetencia(estado.comp))} está vazia — é ela que diz quais folhas são esperadas.`,
+      acoes: `<a class="btn" href="#planilha">${ic('calendario')} Montar planilha</a>` });
     return;
   }
   const recebida = (l) => folhas.find((f) => f.paciente_id === l.paciente_id && f.profissional_id === l.profissional_id);
   const ordenadas = [...linhas].sort((a, b) => Boolean(recebida(a)) - Boolean(recebida(b)));
   const nRec = linhas.filter(recebida).length;
   $('#cf-registro').innerHTML = `
-    <p><b>${nRec}</b> de <b>${linhas.length}</b> folhas recebidas.</p>
+    <div class="linha" style="margin-bottom:1em"><div class="barra cresce"><span style="width:${(nRec / linhas.length) * 100}%"></span></div>
+      <span><b>${nRec}</b> de <b>${linhas.length}</b> folhas recebidas</span></div>
     <div class="tabela-wrap"><table class="t"><thead><tr><th>Paciente</th><th>Profissional</th><th>Situação</th><th>Arquivo</th><th></th></tr></thead><tbody>
     ${ordenadas.map((l) => {
       const f = recebida(l);
-      const sit = f ? `<span class="tag ok">Recebida${f.origem === 'manual' ? ' (manual)' : ''}</span>` : '<span class="tag erro">Faltando</span>';
-      return `<tr><td>${esc(l.paciente)}</td><td>${esc(l.profissional)}</td><td>${sit}</td>
+      const sit = f ? `<span class="tag ok">${ic('check')} Recebida${f.origem === 'manual' ? ' (manual)' : ''}</span>` : `<span class="tag erro">${ic('docX')} Faltando</span>`;
+      return `<tr><td>${pessoa(l.paciente)}</td><td>${pessoa(l.profissional, l.categoria || '')}</td><td>${sit}</td>
         <td class="nome-arq">${esc(f?.arquivo || '')}</td>
-        <td class="acoes">${f ? (f.origem === 'manual' ? `<button class="btn sec peq" data-marcar="0" data-p="${l.paciente_id}" data-r="${l.profissional_id}">Desmarcar</button>` : '')
-          : `<button class="btn sec peq" data-copiar="${esc(Conferencia.nomeCorreto(l.paciente, l.profissional))}">Copiar nome</button>
-             <button class="btn sec peq" data-marcar="1" data-p="${l.paciente_id}" data-r="${l.profissional_id}">Marcar recebida</button>`}</td></tr>`;
+        <td class="acoes">${f ? (f.origem === 'manual' ? `<button class="btn fantasma peq" data-marcar="0" data-p="${l.paciente_id}" data-r="${l.profissional_id}">${ic('x')} Desmarcar</button>` : '')
+          : `<button class="btn sec peq" data-copiar="${esc(Conferencia.nomeCorreto(l.paciente, l.profissional, ''))}">${ic('copiar')} Copiar nome</button>
+             <button class="btn sec peq" data-marcar="1" data-p="${l.paciente_id}" data-r="${l.profissional_id}">${ic('check')} Marcar recebida</button>`}</td></tr>`;
     }).join('')}</tbody></table></div>`;
 }
 
@@ -400,6 +464,7 @@ async function marcarFolha(b) {
   try {
     await api('/api/folhas/marcar', { method: 'POST', body: { competencia: estado.comp, paciente_id: Number(b.dataset.p), profissional_id: Number(b.dataset.r), recebida: b.dataset.marcar === '1' } });
     await renderRegistro();
+    atualizarContadorRemoto();
   } catch (e) { toast(e.message, true); }
 }
 
@@ -475,25 +540,26 @@ async function analisarArquivos(nomes, input) {
     await api('/api/folhas/conferencia', { method: 'POST', body: { competencia: estado.comp, encontradas: cfResultado.encontradas, resumo: cfResultado.resumo } });
     toast(`Conferência registrada: ${cfResultado.encontradas.length} folha(s) reconhecida(s).`);
     await carregarConferencia();
+    atualizarContadorRemoto();
     $('#cf-resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) { toast(e.message, true); }
 }
 
 function renderResultado() {
   const r = cfResultado.resumo;
-  $('#cf-kpis').innerHTML = `
-    <div class="kpi"><div class="rot">Arquivos na pasta</div><div class="val">${r.total}</div></div>
-    <div class="kpi"><div class="rot">Corretos</div><div class="val">${r.ok}</div></div>
-    <div class="kpi ${r.pendencias ? 'alerta' : ''}"><div class="rot">Com pendência no nome</div><div class="val">${r.pendencias}</div></div>
-    <div class="kpi"><div class="rot">Esperadas (planilha)</div><div class="val">${r.esperados}</div></div>
-    <div class="kpi ${r.faltando ? 'alerta' : ''}"><div class="rot">Faltando subir</div><div class="val">${r.faltando}</div></div>`;
+  $('#cf-kpis').innerHTML = [
+    kpi({ rot: 'Arquivos na pasta', val: r.total, icone: 'arquivos', cor: 'azul' }),
+    kpi({ rot: 'Nomes corretos', val: r.ok, icone: 'check' }),
+    kpi({ rot: 'Pendência no nome', val: r.pendencias, icone: 'editar', cor: 'ambar', det: r.pendencias ? 'veja as sugestões abaixo' : 'nenhuma' }),
+    kpi({ rot: 'Faltando subir', val: `${r.faltando}<small> / ${r.esperados}</small>`, icone: 'docX', cor: 'coral', det: 'folhas esperadas na planilha' }),
+  ].join('');
 
   $('#cf-faltando').innerHTML = !r.esperados
-    ? `<p class="suave">A planilha de ${esc(nomeCompetencia(estado.comp))} está vazia, então não há folhas esperadas. <a href="#planilha">Montar planilha</a>.</p>`
-    : !cfResultado.faltando.length ? '<p><span class="tag ok">Nenhuma folha faltando</span></p>'
+    ? vazio({ ilustra: 'calendario', titulo: 'Nenhuma folha esperada', texto: `A planilha de ${esc(nomeCompetencia(estado.comp))} está vazia.`, acoes: `<a class="btn" href="#planilha">${ic('calendario')} Montar planilha</a>` })
+    : !cfResultado.faltando.length ? vazio({ ilustra: 'pasta', titulo: 'Nenhuma folha faltando!', texto: 'Todas as folhas da planilha estão na pasta.' })
       : `<div class="tabela-wrap"><table class="t"><thead><tr><th>Paciente</th><th>Profissional</th><th>Nome esperado do arquivo</th><th></th></tr></thead><tbody>
-        ${cfResultado.faltando.map((f) => `<tr><td>${esc(f.paciente)}</td><td>${esc(f.profissional)}</td><td class="nome-arq">${esc(f.nomeArquivo)}</td>
-          <td class="acoes"><button class="btn sec peq" data-copiar="${esc(f.nomeArquivo.replace(/\.pdf$/, ''))}">Copiar nome</button></td></tr>`).join('')}
+        ${cfResultado.faltando.map((f) => `<tr><td>${pessoa(f.paciente)}</td><td>${pessoa(f.profissional)}</td><td class="nome-arq">${esc(f.nomeArquivo)}</td>
+          <td class="acoes"><button class="btn sec peq" data-copiar="${esc(f.nomeArquivo.replace(/\.pdf$/, ''))}">${ic('copiar')} Copiar nome</button></td></tr>`).join('')}
       </tbody></table></div>`;
 
   const filtros = [['todos', 'Todos', r.total], ['pendencias', 'Com pendência', r.pendencias], ['ok', 'Corretos', r.ok],
@@ -503,12 +569,12 @@ function renderResultado() {
 
   const itens = cfResultado.itens.filter((i) => cfFiltro === 'todos' || (cfFiltro === 'pendencias' ? i.status !== 'ok' : i.status === cfFiltro));
   $('#cf-itens').innerHTML = itens.length ? itens.map((i) => {
-    const [cls, rot] = STATUS[i.status];
+    const [cls, rot, icone] = STATUS[i.status];
     return `<tr>
-      <td class="nome-arq">${esc(i.arquivo)}</td>
-      <td><span class="tag ${cls}">${rot}</span>${i.mensagem ? `<br><small>${esc(i.mensagem)}</small>` : ''}</td>
-      <td>${i.paciente ? `${esc(i.paciente.nome)}<br><small>${esc(i.profissional.nome)}</small>` : '<small>—</small>'}</td>
-      <td>${i.sugestao ? `<span class="nome-arq sugestao">${esc(i.sugestao)}</span><br><button class="btn sec peq" data-copiar="${esc(i.sugestao.replace(/\.[^.]+$/, ''))}">Copiar</button>` : ''}</td>
+      <td class="nome-arq" style="max-width:340px">${esc(i.arquivo)}</td>
+      <td style="max-width:300px"><span class="tag ${cls}">${ic(icone)} ${rot}</span>${i.mensagem ? `<br><small>${esc(i.mensagem)}</small>` : ''}</td>
+      <td>${i.paciente ? pessoa(i.paciente.nome, i.profissional.nome) : '<small>—</small>'}</td>
+      <td style="max-width:340px">${i.sugestao ? `<span class="nome-arq sugestao">${esc(i.sugestao)}</span><br><button class="btn sec peq" style="margin-top:.4em" data-copiar="${esc(i.sugestao.replace(/\.[^.]+$/, ''))}">${ic('copiar')} Copiar</button>` : ''}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="4" class="vazio">Nenhum arquivo neste filtro.</td></tr>';
 }
@@ -557,7 +623,8 @@ $('#cf-falt-pdf').addEventListener('click', () => {
 // ================= CADASTROS =================
 const CADASTRO = {
   pacientes: {
-    titulo: 'Pacientes', singular: 'paciente', icone: '🧑‍🦳',
+    titulo: 'Pacientes', singular: 'paciente', icone: 'coracao',
+    descricao: 'Quem recebe o atendimento domiciliar. O nome cadastrado aqui é o que deve aparecer no arquivo da folha.',
     campos: [
       { k: 'nome', rot: 'Nome completo', obrig: true, inteiro: true },
       { k: 'cpf', rot: 'CPF' },
@@ -568,12 +635,13 @@ const CADASTRO = {
       { k: 'endereco', rot: 'Endereço', inteiro: true },
       { k: 'observacoes', rot: 'Observações', inteiro: true, area: true },
     ],
-    colunas: ['nome', 'cpf', 'telefone', 'convenio'],
+    colunas: ['nome', 'cpf', 'telefone', 'nascimento'],
     // Nomes de coluna aceitos na importação do Excel
     sinonimos: { nome: ['nome', 'paciente', 'nome_do_paciente', 'nome_paciente'], cpf: ['cpf'], nascimento: ['nascimento', 'data_de_nascimento', 'data_nascimento', 'dt_nascimento'], telefone: ['telefone', 'celular', 'contato', 'fone'], responsavel: ['responsavel', 'familiar'], convenio: ['convenio', 'operadora', 'plano'], endereco: ['endereco', 'endereco_completo'], observacoes: ['observacoes', 'observacao', 'obs'] },
   },
   profissionais: {
-    titulo: 'Profissionais (prestadores)', singular: 'profissional', icone: '🩺',
+    titulo: 'Profissionais', singular: 'profissional', icone: 'estetoscopio',
+    descricao: 'Prestadores que realizam os atendimentos: técnicos, enfermeiros, cuidadores, fisioterapeutas e outros.',
     campos: [
       { k: 'nome', rot: 'Nome completo', obrig: true, inteiro: true },
       { k: 'categoria', rot: 'Categoria / função', lista: true },
@@ -588,6 +656,7 @@ const CADASTRO = {
     sinonimos: { nome: ['nome', 'profissional', 'prestador', 'nome_do_profissional', 'nome_profissional'], categoria: ['categoria', 'funcao', 'cargo', 'especialidade', 'profissao'], registro: ['registro', 'coren', 'crefito', 'conselho', 'registro_profissional'], cpf: ['cpf'], telefone: ['telefone', 'celular', 'contato', 'fone'], email: ['email', 'e_mail'], chave_pix: ['chave_pix', 'pix', 'dados_bancarios', 'banco'], observacoes: ['observacoes', 'observacao', 'obs'] },
   },
 };
+let plLinhasMes = [];
 const filtroCad = { pacientes: { q: '', inativos: false }, profissionais: { q: '', inativos: false } };
 
 function renderCadastro(tipo) {
@@ -596,21 +665,27 @@ function renderCadastro(tipo) {
   if (!sec.dataset.montado) {
     sec.dataset.montado = '1';
     sec.innerHTML = `
-      <div class="cab-secao">
-        <div><h1>${def.titulo}</h1><p>Cadastro usado na planilha de atendimento e na conferência dos nomes dos arquivos.</p></div>
-        <div class="linha">
-          <button class="btn" data-acao="novo">＋ Novo ${def.singular}</button>
-          <label class="btn sec"><input type="file" accept=".xlsx,.xls,.csv" data-acao="importar" hidden> ⬆ Importar Excel</label>
-          <button class="btn sec" data-acao="xlsx">⬇ Excel</button>
-          <button class="btn sec" data-acao="pdf">⬇ PDF timbrado</button>
+      <div class="hero">
+        <img class="deco" src="img/favicon.svg" alt="">
+        <div>
+          <span class="selo">${ic(def.icone)} Cadastros</span>
+          <h1>${def.titulo}</h1>
+          <p>${def.descricao}</p>
+        </div>
+        <div class="acoes">
+          <button class="btn" data-acao="novo">${ic('mais')} Novo ${def.singular}</button>
+          <label class="btn sec"><input type="file" accept=".xlsx,.xls,.csv" data-acao="importar" hidden>${ic('enviar')} Importar Excel</label>
         </div>
       </div>
-      <div class="linha" style="margin-bottom:.8em">
-        <input type="search" data-acao="busca" placeholder="Buscar ${def.singular}…" class="cresce" style="max-width:420px">
-        <label class="linha" style="gap:.3em"><input type="checkbox" data-acao="inativos"> mostrar inativos</label>
-        <span class="suave" data-info></span>
+      <div class="cards" data-kpis></div>
+      <div class="barra-ferr">
+        <div class="busca cresce" style="max-width:420px">${ic('busca')}<input type="search" data-acao="busca" placeholder="Buscar ${def.singular} por nome, CPF, telefone…"></div>
+        <label class="check"><input type="checkbox" data-acao="inativos"> mostrar inativos</label>
+        <span class="cresce"></span>
+        <button class="btn sec" data-acao="xlsx">${ic('planilha')} Excel</button>
+        <button class="btn sec" data-acao="pdf">${ic('baixar')} PDF timbrado</button>
       </div>
-      <div class="tabela-wrap" data-tabela></div>`;
+      <div data-tabela></div>`;
     $('[data-acao="novo"]', sec).addEventListener('click', () => editarCadastro(tipo));
     $('[data-acao="busca"]', sec).addEventListener('input', (e) => { filtroCad[tipo].q = e.target.value; desenharTabelaCad(tipo); });
     $('[data-acao="inativos"]', sec).addEventListener('change', (e) => { filtroCad[tipo].inativos = e.target.checked; desenharTabelaCad(tipo); });
@@ -618,7 +693,8 @@ function renderCadastro(tipo) {
     $('[data-acao="xlsx"]', sec).addEventListener('click', () => exportarCad(tipo, 'xlsx'));
     $('[data-acao="pdf"]', sec).addEventListener('click', () => exportarCad(tipo, 'pdf'));
   }
-  return carregarCadastros().then(() => desenharTabelaCad(tipo));
+  return Promise.all([carregarCadastros(), api(`/api/atendimentos?competencia=${estado.comp}`).then((r) => { plLinhasMes = r; })])
+    .then(() => desenharTabelaCad(tipo));
 }
 
 function listaCad(tipo) {
@@ -635,15 +711,24 @@ function desenharTabelaCad(tipo) {
   const sec = $(`#sec-${tipo}`);
   const lista = listaCad(tipo);
   const ativos = estado[tipo].filter((x) => x.ativo).length;
-  $('[data-info]', sec).textContent = `${ativos} ativo(s)${estado[tipo].length > ativos ? ` · ${estado[tipo].length - ativos} inativo(s)` : ''}`;
+  const naPlanilha = new Set(plLinhasMes.map((l) => l[tipo === 'pacientes' ? 'paciente_id' : 'profissional_id'])).size;
+  $('[data-kpis]', sec).innerHTML = [
+    kpi({ rot: 'Ativos', val: ativos, icone: def.icone, cor: tipo === 'pacientes' ? 'coral' : '' }),
+    kpi({ rot: `Na planilha de ${nomeCompetencia(estado.comp).split(' ')[0]}`, val: naPlanilha, icone: 'calendario', cor: 'azul' }),
+    kpi({ rot: 'Inativos', val: estado[tipo].length - ativos, icone: 'relogio', cor: 'ambar', det: 'histórico preservado' }),
+  ].join('');
+  const sub = (x) => (tipo === 'pacientes' ? [x.convenio, x.responsavel && `Resp.: ${x.responsavel}`] : [x.registro]).filter(Boolean).join(' · ');
   $('[data-tabela]', sec).innerHTML = !lista.length
-    ? `<div class="vazio">${estado[tipo].length ? 'Nenhum resultado.' : `Nenhum ${def.singular} cadastrado. Clique em <b>Novo</b> ou <b>Importar Excel</b>.`}</div>`
-    : `<table class="t"><thead><tr>${def.colunas.map((k) => `<th>${esc(rotuloCampo(tipo, k))}</th>`).join('')}<th>Linhas na planilha</th><th></th></tr></thead><tbody>
+    ? `<div class="cartao">${estado[tipo].length ? vazio({ ilustra: 'pessoas', titulo: 'Nenhum resultado', texto: 'Tente outro termo na busca.' })
+      : vazio({ ilustra: 'pessoas', titulo: `Nenhum ${def.singular} cadastrado ainda`, texto: 'Cadastre um por um ou importe direto da sua planilha do Excel.',
+          acoes: `<button class="btn" onclick="$('#sec-${tipo} [data-acao=novo]').click()">${ic('mais')} Novo ${def.singular}</button>` })}</div>`
+    : `<div class="tabela-wrap"><table class="t"><thead><tr>${def.colunas.map((k) => `<th>${esc(rotuloCampo(tipo, k))}</th>`).join('')}<th>Situação</th><th>Linhas lançadas</th><th></th></tr></thead><tbody>
       ${lista.map((x) => `<tr class="${x.ativo ? '' : 'inativo'}">
-        ${def.colunas.map((k, i) => `<td>${i === 0 ? `<b>${esc(x[k])}</b>${x.ativo ? '' : ' <span class="tag neutra">inativo</span>'}` : esc(fmtCampo(k, x[k]))}</td>`).join('')}
-        <td>${x.usos || ''}</td>
-        <td class="acoes"><button class="btn sec peq" data-editar="${x.id}">Editar</button></td></tr>`).join('')}
-    </tbody></table>`;
+        ${def.colunas.map((k, i) => `<td>${i === 0 ? pessoa(x.nome, sub(x)) : k === 'categoria' && x[k] ? `<span class="tag info">${esc(x[k])}</span>` : esc(fmtCampo(k, x[k]))}</td>`).join('')}
+        <td>${x.ativo ? '<span class="tag ok">Ativo</span>' : '<span class="tag neutra">Inativo</span>'}</td>
+        <td>${x.usos ? `<span class="suave">${x.usos} na planilha</span>` : ''}</td>
+        <td class="acoes"><button class="btn sec peq" data-editar="${x.id}">${ic('editar')} Editar</button></td></tr>`).join('')}
+    </tbody></table></div>`;
   $$('[data-editar]', sec).forEach((b) => b.addEventListener('click', () => editarCadastro(tipo, estado[tipo].find((x) => x.id === Number(b.dataset.editar)))));
 }
 
@@ -798,8 +883,8 @@ function desenharListaDocs() {
   const q = Conferencia.normalizar($('#doc-busca').value);
   const lista = docs.filter((d) => !q || Conferencia.normalizar(d.titulo + ' ' + (d.destinatario || '')).includes(q));
   $('#doc-lista').innerHTML = lista.length ? lista.map((d) => `<button data-doc="${d.id}" class="${docAtual?.id === d.id ? 'ativo' : ''}">
-      <b>${esc(d.titulo)}</b><small>${esc(dataBR(d.atualizado_em))} · ${esc(d.usuario || '')}</small></button>`).join('')
-    : '<p class="suave">Nenhum documento salvo.</p>';
+      <span class="bolha">${ic('documento')}</span><span><b>${esc(d.titulo)}</b><small class="suave">${esc(dataBR(d.atualizado_em))} · ${esc(d.usuario || '')}</small></span></button>`).join('')
+    : vazio({ ilustra: 'documento', titulo: 'Nenhum documento salvo', texto: 'Escolha um modelo ao lado para começar.' });
   $$('#doc-lista [data-doc]').forEach((b) => b.addEventListener('click', () => abrirDoc(Number(b.dataset.doc))));
 }
 

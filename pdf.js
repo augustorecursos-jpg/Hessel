@@ -93,11 +93,11 @@ function desenharTimbrado(page, { f, logo, cfg, marcaDagua = false }) {
   page.drawRectangle({ x: W - 120, y: H - 7, width: 120, height: 7, color: COR.coral });
 
   // Logo
-  const altLogo = 60;
+  const altLogo = 56;
   let xTexto = MARGEM;
   if (logo) {
     const larg = logo.width * (altLogo / logo.height);
-    page.drawImage(logo, { x: MARGEM - 6, y: H - 20 - altLogo, width: larg, height: altLogo });
+    page.drawImage(logo, { x: MARGEM, y: H - 22 - altLogo, width: larg, height: altLogo });
     xTexto = MARGEM + larg;
   }
 
@@ -124,7 +124,7 @@ function desenharTimbrado(page, { f, logo, cfg, marcaDagua = false }) {
 
   // Marca d'água (logo bem clara no centro)
   if (marcaDagua && logo) {
-    const larg = W * 0.55;
+    const larg = W * 0.42;
     const alt = logo.height * (larg / logo.width);
     page.drawImage(logo, { x: (W - larg) / 2, y: (H - alt) / 2 - 20, width: larg, height: alt, opacity: 0.06 });
   }

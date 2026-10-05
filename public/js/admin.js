@@ -5,6 +5,7 @@ let eu = null;
   try { eu = await api('/api/eu'); } catch { return; }
   if (eu.perfil !== 'admin') { location.href = '/app'; return; }
   $('#nome-usuario').textContent = eu.nome;
+  $('#av-usuario').textContent = iniciais(eu.nome);
   $('#btn-sair').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }); location.href = '/'; });
   window.addEventListener('hashchange', () => abrir(location.hash.slice(1)));
   abrir(location.hash.slice(1) || 'usuarios');
@@ -25,12 +26,12 @@ async function carregarUsuarios() {
   usuarios = await api('/api/admin/usuarios');
   $('#u-tabela').innerHTML = `<table class="t"><thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead><tbody>
     ${usuarios.map((u) => `<tr class="${u.ativo ? '' : 'inativo'}">
-      <td><b>${esc(u.nome)}</b>${u.id === eu.id ? ' <span class="tag info">você</span>' : ''}</td>
+      <td><div class="linha">${pessoa(u.nome)}${u.id === eu.id ? '<span class="tag info">você</span>' : ''}</div></td>
       <td>${esc(u.login)}</td>
-      <td><span class="tag ${u.perfil === 'admin' ? 'aviso' : 'info'}">${u.perfil === 'admin' ? 'Administrador' : 'Operador'}</span></td>
-      <td>${u.ativo ? '<span class="tag ok">Ativo</span>' : '<span class="tag erro">Bloqueado</span>'}</td>
+      <td><span class="tag ${u.perfil === 'admin' ? 'aviso' : 'info'}">${ic(u.perfil === 'admin' ? 'escudo' : 'usuario')} ${u.perfil === 'admin' ? 'Administrador' : 'Operador'}</span></td>
+      <td>${u.ativo ? '<span class="tag ok">Ativo</span>' : `<span class="tag erro">${ic('cadeado')} Bloqueado</span>`}</td>
       <td>${u.ultimo_acesso ? esc(dataBR(u.ultimo_acesso)) : '<small>nunca</small>'}</td>
-      <td class="acoes"><button class="btn sec peq" data-u="${u.id}">Editar</button></td></tr>`).join('')}
+      <td class="acoes"><button class="btn sec peq" data-u="${u.id}">${ic('editar')} Editar</button></td></tr>`).join('')}
   </tbody></table>`;
   $$('[data-u]').forEach((b) => b.addEventListener('click', () => editarUsuario(usuarios.find((u) => u.id === Number(b.dataset.u)))));
 }
@@ -106,7 +107,7 @@ async function carregarAuditoria() {
   audLista = await api(`/api/admin/auditoria?q=${encodeURIComponent($('#aud-busca').value)}&limite=1000`);
   $('#aud-tabela').innerHTML = audLista.length ? `<table class="t"><thead><tr><th>Data</th><th>Usuário</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>
     ${audLista.map((r) => `<tr><td style="white-space:nowrap">${esc(dataBR(r.criado_em))}</td><td>${esc(r.usuario)}</td><td>${esc(r.acao)}</td><td>${esc(r.detalhe)}</td></tr>`).join('')}
-    </tbody></table>` : '<div class="vazio">Nenhum registro.</div>';
+    </tbody></table>` : vazio({ ilustra: 'documento', titulo: 'Nenhum registro' });
 }
 $('#aud-busca').addEventListener('input', () => { clearTimeout(audTimer); audTimer = setTimeout(carregarAuditoria, 300); });
 $('#aud-xlsx').addEventListener('click', () => exportarXlsx('Auditoria.xlsx', {
@@ -118,9 +119,9 @@ $('#aud-xlsx').addEventListener('click', () => exportarXlsx('Auditoria.xlsx', {
 // ---------- sistema ----------
 async function carregarSistema() {
   const s = await api('/api/admin/sistema');
-  const kpi = (rot, val) => `<div class="kpi"><div class="rot">${rot}</div><div class="val">${val}</div></div>`;
-  $('#sis-kpis').innerHTML = kpi('Usuários', s.usuarios) + kpi('Pacientes', s.pacientes) + kpi('Profissionais', s.profissionais)
-    + kpi('Linhas de planilha', s.atendimentos) + kpi('Folhas registradas', s.folhas) + kpi('Documentos', s.documentos);
+  const kpi = (rot, val, icone, cor = '') => `<div class="kpi ${cor}"><div class="topo-kpi"><span class="rot">${rot}</span><span class="bolha ${cor}">${ic(icone)}</span></div><div class="val">${val}</div></div>`;
+  $('#sis-kpis').innerHTML = kpi('Usuários', s.usuarios, 'usuarios', 'azul') + kpi('Pacientes', s.pacientes, 'coracao', 'coral') + kpi('Profissionais', s.profissionais, 'estetoscopio')
+    + kpi('Linhas de planilha', s.atendimentos, 'tabela', 'ambar') + kpi('Folhas registradas', s.folhas, 'docOk') + kpi('Documentos', s.documentos, 'documento', 'azul');
   $('#sis-comp').innerHTML = s.competencias.length ? s.competencias.map((c) => `<option value="${c}">${esc(nomeCompetencia(c))}</option>`).join('') : '<option value="">— nenhuma —</option>';
   $('#sis-conf').innerHTML = s.conferencias.length ? `<div class="tabela-wrap"><table class="t"><thead><tr><th>Data</th><th>Competência</th><th>Usuário</th><th>Arquivos</th><th>Reconhecidos</th><th>Pendências no nome</th><th>Faltando</th></tr></thead><tbody>
     ${s.conferencias.map((c) => `<tr><td>${esc(dataBR(c.criado_em))}</td><td>${esc(nomeCompetencia(c.competencia))}</td><td>${esc(c.usuario)}</td><td>${c.total_arquivos}</td><td>${c.reconhecidos}</td><td>${c.pendencias}</td><td>${c.faltando}</td></tr>`).join('')}

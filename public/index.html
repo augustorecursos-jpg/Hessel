@@ -9,22 +9,35 @@
 </head>
 <body>
   <main class="login">
-    <div class="caixa">
-      <img src="/logo" alt="Hessel Domiciliar">
-      <h1 style="font-size:1.15rem;margin:0">Fechamento de folhas e produtividade</h1>
-      <form id="form-login">
-        <div>
-          <label class="rotulo" for="login">Usuário</label>
-          <input type="text" id="login" autocomplete="username" required>
-        </div>
-        <div>
-          <label class="rotulo" for="senha">Senha</label>
-          <input type="password" id="senha" autocomplete="current-password" required>
-        </div>
-        <p class="erro" id="erro" role="alert"></p>
-        <button class="btn" type="submit">Entrar</button>
-      </form>
-    </div>
+    <section class="marca-lado">
+      <div class="logo-cartao"><img src="/logo" alt="Hessel Domiciliar"></div>
+      <h1>Cuidar de quem cuida também é <em>organização</em>.</h1>
+      <p>Fechamento de folhas e produtividade da equipe de atendimento domiciliar, tudo em um só lugar.</p>
+      <ul class="recursos">
+        <li><span class="bolha"><i data-ic="calendario"></i></span><div><b>Planilha de atendimento</b><small>Lançamento dia a dia, exportação em Excel e PDF</small></div></li>
+        <li><span class="bolha"><i data-ic="pasta"></i></span><div><b>Conferência de folhas</b><small>Saiba na hora o que falta e o que está com nome errado</small></div></li>
+        <li><span class="bolha"><i data-ic="documento"></i></span><div><b>Papel timbrado</b><small>Documentos e relatórios com a identidade da Hessel</small></div></li>
+      </ul>
+    </section>
+    <section class="form-lado">
+      <div class="caixa">
+        <h2>Boas-vindas!</h2>
+        <p class="suave" style="margin:0">Entre com seu usuário e senha para continuar.</p>
+        <form id="form-login">
+          <div>
+            <label class="rotulo" for="login">Usuário</label>
+            <input type="text" id="login" autocomplete="username" required autofocus>
+          </div>
+          <div>
+            <label class="rotulo" for="senha">Senha</label>
+            <input type="password" id="senha" autocomplete="current-password" required>
+          </div>
+          <p class="erro" id="erro" role="alert"></p>
+          <button class="btn" type="submit">Entrar <i data-ic="dir"></i></button>
+        </form>
+        <p class="rodape-login"><i data-ic="cadeado"></i> Acesso restrito à equipe Hessel Domiciliar</p>
+      </div>
+    </section>
   </main>
   <script src="js/comum.js"></script>
   <script>
