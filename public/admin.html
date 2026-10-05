@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hessel Domiciliar · Administração</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="app">
+  <aside class="lateral">
+    <div class="marca"><img src="/logo" alt="Hessel Domiciliar"></div>
+    <nav id="menu">
+      <a href="#usuarios" data-secao="usuarios"><span class="ic">👥</span> Usuários</a>
+      <a href="#empresa" data-secao="empresa"><span class="ic">🏷️</span> Empresa e timbrado</a>
+      <a href="#auditoria" data-secao="auditoria"><span class="ic">🕑</span> Auditoria</a>
+      <a href="#sistema" data-secao="sistema"><span class="ic">🛠️</span> Sistema e backup</a>
+      <div class="sep"></div>
+      <a href="/app"><span class="ic">←</span> Voltar ao sistema</a>
+    </nav>
+    <div class="rodape">Área do administrador</div>
+  </aside>
+
+  <div class="principal">
+    <header class="topo">
+      <b>Administração</b>
+      <div class="usuario"><span id="nome-usuario"></span><button class="btn sec peq" id="btn-sair">Sair</button></div>
+    </header>
+    <main class="conteudo">
+      <section data-secao="usuarios" hidden>
+        <div class="cab-secao">
+          <div><h1>Usuários</h1><p><b>Administrador</b> acessa tudo, inclusive esta área. <b>Operador</b> usa o sistema (cadastros, planilha, conferência e documentos).</p></div>
+          <button class="btn" id="u-novo">＋ Novo usuário</button>
+        </div>
+        <div class="tabela-wrap" id="u-tabela"></div>
+      </section>
+
+      <section data-secao="empresa" hidden>
+        <div class="cab-secao"><div><h1>Empresa e papel timbrado</h1><p>Dados impressos no cabeçalho e no rodapé de todos os PDFs.</p></div></div>
+        <div class="cartao">
+          <h2>Logo</h2>
+          <div class="linha" style="align-items:flex-start;gap:1.2em">
+            <img src="/logo" id="logo-prev" alt="Logo atual" style="width:180px;border:1px solid var(--borda);border-radius:10px;background:#fff;padding:.4em">
+            <div>
+              <p class="suave" style="margin-top:0">PNG ou JPG, até 3 MB. Para um timbrado mais nítido, use uma imagem com pelo menos 600 px de largura.</p>
+              <div class="linha">
+                <label class="btn sec"><input type="file" id="logo-arq" accept="image/png,image/jpeg" hidden> Trocar logo</label>
+                <button class="btn perigo" id="logo-padrao">Restaurar logo padrão</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cartao">
+          <h2>Dados do timbrado</h2>
+          <form id="f-empresa" class="grade-form">
+            <div><label class="rotulo">Nome da empresa</label><input type="text" name="empresa_nome"></div>
+            <div><label class="rotulo">Subtítulo</label><input type="text" name="empresa_subtitulo"></div>
+            <div><label class="rotulo">CNPJ</label><input type="text" name="empresa_cnpj"></div>
+            <div><label class="rotulo">Telefone</label><input type="text" name="empresa_telefone"></div>
+            <div><label class="rotulo">E-mail</label><input type="text" name="empresa_email"></div>
+            <div><label class="rotulo">Site</label><input type="text" name="empresa_site"></div>
+            <div class="inteiro"><label class="rotulo">Endereço (rodapé)</label><input type="text" name="empresa_endereco"></div>
+            <div class="inteiro"><label class="rotulo">Texto extra do rodapé</label><input type="text" name="rodape_extra"></div>
+            <div class="inteiro"><label class="rotulo">Categorias de profissionais <small>(separadas por vírgula; aparecem como sugestão no cadastro)</small></label><textarea name="categorias" style="min-height:4em"></textarea></div>
+          </form>
+          <div class="linha fim" style="margin-top:1em">
+            <button class="btn sec" id="emp-previa">👁 Ver papel timbrado</button>
+            <button class="btn" form="f-empresa">Salvar</button>
+          </div>
+        </div>
+      </section>
+
+      <section data-secao="auditoria" hidden>
+        <div class="cab-secao">
+          <div><h1>Auditoria</h1><p>Registro de quem fez o quê no sistema.</p></div>
+          <div class="linha"><button class="btn sec" id="aud-xlsx">⬇ Excel</button></div>
+        </div>
+        <input type="search" id="aud-busca" placeholder="Filtrar por usuário, ação ou detalhe…" style="max-width:420px;margin-bottom:.8em">
+        <div class="tabela-wrap" id="aud-tabela"></div>
+      </section>
+
+      <section data-secao="sistema" hidden>
+        <div class="cab-secao"><div><h1>Sistema e backup</h1></div></div>
+        <div class="cards" id="sis-kpis"></div>
+        <div class="cartao">
+          <h2>Backup</h2>
+          <p>Baixa uma cópia completa do banco de dados (cadastros, planilhas, conferências, documentos e usuários). Guarde em local seguro.</p>
+          <a class="btn" href="/api/admin/backup">⬇ Baixar backup</a>
+        </div>
+        <div class="cartao">
+          <h2>Competências</h2>
+          <p class="suave">Exclui todas as linhas da planilha e as folhas registradas de uma competência (útil para desfazer um mês montado por engano).</p>
+          <div class="linha"><select id="sis-comp" style="width:auto"></select><button class="btn perigo" id="sis-excluir-comp">Excluir competência</button></div>
+        </div>
+        <div class="cartao">
+          <h2>Últimas conferências de folhas</h2>
+          <div id="sis-conf"></div>
+        </div>
+        <p class="suave" id="sis-info"></p>
+      </section>
+    </main>
+  </div>
+</div>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

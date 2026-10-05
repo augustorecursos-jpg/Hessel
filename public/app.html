@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hessel Domiciliar</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="app">
+  <aside class="lateral">
+    <div class="marca"><img src="/logo" alt="Hessel Domiciliar"></div>
+    <nav id="menu">
+      <a href="#painel" data-secao="painel"><span class="ic">🏠</span> Painel</a>
+      <a href="#planilha" data-secao="planilha"><span class="ic">📅</span> Planilha de atendimento</a>
+      <a href="#conferencia" data-secao="conferencia"><span class="ic">📂</span> Conferência de folhas</a>
+      <div class="sep"></div>
+      <a href="#pacientes" data-secao="pacientes"><span class="ic">🧑‍🦳</span> Pacientes</a>
+      <a href="#profissionais" data-secao="profissionais"><span class="ic">🩺</span> Profissionais</a>
+      <div class="sep"></div>
+      <a href="#documentos" data-secao="documentos"><span class="ic">📄</span> Documentos e timbrado</a>
+      <a href="/admin" id="link-admin" hidden><span class="ic">⚙️</span> Administração</a>
+    </nav>
+    <div class="rodape">Hessel Domiciliar · fechamento de folhas</div>
+  </aside>
+
+  <div class="principal">
+    <header class="topo">
+      <div class="comp">
+        <label for="competencia"><b>Competência</b></label>
+        <input type="month" id="competencia">
+        <span class="suave" id="nome-comp"></span>
+      </div>
+      <div class="usuario">
+        <span id="nome-usuario"></span>
+        <button class="btn sec peq" id="btn-senha">Trocar senha</button>
+        <button class="btn sec peq" id="btn-sair">Sair</button>
+      </div>
+    </header>
+
+    <main class="conteudo">
+      <!-- ================= PAINEL ================= -->
+      <section id="sec-painel" data-secao="painel" hidden>
+        <div class="cab-secao">
+          <div><h1>Painel</h1><p>Resumo do fechamento da competência selecionada.</p></div>
+        </div>
+        <div class="aviso-box alerta" id="aviso-senha-padrao" hidden>
+          Você está usando a senha inicial do administrador. <a href="#" id="link-trocar-senha">Troque agora</a>.
+        </div>
+        <div class="cards" id="kpis"></div>
+        <div class="cartao">
+          <div class="linha entre"><h2 style="margin:0">Folhas da competência</h2><span id="progresso-txt" class="suave"></span></div>
+          <div class="barra" style="margin:.8em 0"><span id="progresso" style="width:0"></span></div>
+          <div class="linha">
+            <a class="btn" href="#conferencia">📂 Conferir pasta de folhas</a>
+            <a class="btn sec" href="#planilha">📅 Abrir planilha de atendimento</a>
+          </div>
+        </div>
+        <div class="cartao">
+          <h2>Folhas que ainda faltam</h2>
+          <div id="painel-faltando"></div>
+        </div>
+        <div class="cartao">
+          <h2>Últimas competências</h2>
+          <div id="painel-historico"></div>
+        </div>
+      </section>
+
+      <!-- ================= PLANILHA ================= -->
+      <section id="sec-planilha" data-secao="planilha" hidden>
+        <div class="cab-secao">
+          <div>
+            <h1>Planilha de atendimento</h1>
+            <p>Uma linha por paciente + profissional. Preencha cada dia com a quantidade de atendimentos (ou <b>X</b>). Tudo é salvo automaticamente.</p>
+          </div>
+          <div class="linha">
+            <button class="btn" id="pl-adicionar">＋ Adicionar linha</button>
+            <button class="btn sec" id="pl-copiar">Copiar do mês anterior</button>
+            <button class="btn sec" id="pl-xlsx">⬇ Excel</button>
+            <button class="btn sec" id="pl-pdf">⬇ PDF timbrado</button>
+          </div>
+        </div>
+        <div class="linha" style="margin-bottom:.7em">
+          <input type="search" id="pl-busca" placeholder="Filtrar por paciente ou profissional…" class="cresce" style="max-width:420px">
+          <span class="suave" id="pl-info"></span>
+        </div>
+        <div class="planilha-wrap" id="pl-wrap"></div>
+        <div class="legenda">
+          <span><b>1, 2, 3…</b> quantidade de atendimentos no dia</span>
+          <span><b>X</b> = 1 atendimento</span>
+          <span><b>F</b> falta · <b>FE</b> férias · <b>A</b> afastado (outras letras não somam)</span>
+          <span>Colunas em rosa = fim de semana</span>
+          <span><b>Folha</b>: ✔ recebida na pasta</span>
+          <span>Use as setas do teclado ou Enter para navegar</span>
+        </div>
+      </section>
+
+      <!-- ================= CONFERÊNCIA ================= -->
+      <section id="sec-conferencia" data-secao="conferencia" hidden>
+        <div class="cab-secao">
+          <div>
+            <h1>Conferência de folhas</h1>
+            <p>Compara os arquivos da pasta com a planilha de atendimento da competência e com os cadastros.
+              Padrão do nome: <code>Paciente NOME DO PACIENTE - Profissional NOME DO PROFISSIONAL.pdf</code></p>
+          </div>
+        </div>
+
+        <div class="cartao">
+          <div class="soltar" id="cf-soltar">
+            <p style="font-size:1.6rem;margin:0">📂</p>
+            <p><b>Selecione a pasta onde você salvou as folhas</b> ou arraste os arquivos para cá.</p>
+            <p class="suave">Os arquivos <b>não são enviados</b>: o sistema lê só os nomes, no seu computador.</p>
+            <div class="linha" style="justify-content:center;margin-top:.8em">
+              <label class="btn"><input type="file" id="cf-pasta" webkitdirectory multiple hidden> Escolher pasta</label>
+              <label class="btn sec"><input type="file" id="cf-arquivos" multiple hidden> Escolher arquivos</label>
+              <button class="btn sec" id="cf-colar">Colar lista de nomes</button>
+            </div>
+          </div>
+          <p class="suave" id="cf-ultima" style="margin:.8em 0 0"></p>
+        </div>
+
+        <div id="cf-resultado" hidden>
+          <div class="cards" id="cf-kpis"></div>
+          <div class="cartao">
+            <div class="linha entre">
+              <h2 style="margin:0">Folhas que faltam subir</h2>
+              <div class="linha">
+                <button class="btn sec peq" id="cf-falt-xlsx">⬇ Excel</button>
+                <button class="btn sec peq" id="cf-falt-pdf">⬇ PDF timbrado</button>
+              </div>
+            </div>
+            <p class="suave">Duplas da planilha de atendimento sem arquivo na pasta. Use <b>Copiar nome</b> ao salvar o anexo do e-mail.</p>
+            <div id="cf-faltando"></div>
+          </div>
+          <div class="cartao">
+            <div class="linha entre">
+              <h2 style="margin:0">Arquivos da pasta</h2>
+              <div class="linha">
+                <button class="btn sec peq" id="cf-bat" title="Gera um arquivo .bat que renomeia os arquivos para o nome sugerido">⬇ Script para renomear</button>
+                <button class="btn sec peq" id="cf-xlsx">⬇ Excel</button>
+                <button class="btn sec peq" id="cf-pdf">⬇ PDF timbrado</button>
+              </div>
+            </div>
+            <div class="filtros" id="cf-filtros"></div>
+            <div class="tabela-wrap"><table class="t"><thead><tr><th>Arquivo</th><th>Situação</th><th>Paciente / Profissional</th><th>Nome sugerido</th></tr></thead><tbody id="cf-itens"></tbody></table></div>
+          </div>
+        </div>
+
+        <div class="cartao" id="cf-manual">
+          <h2>Situação registrada no sistema</h2>
+          <p class="suave">Resultado da última conferência salva. Você também pode marcar uma folha como recebida manualmente.</p>
+          <div id="cf-registro"></div>
+        </div>
+      </section>
+
+      <!-- ================= PACIENTES / PROFISSIONAIS ================= -->
+      <section id="sec-pacientes" data-secao="pacientes" hidden></section>
+      <section id="sec-profissionais" data-secao="profissionais" hidden></section>
+
+      <!-- ================= DOCUMENTOS ================= -->
+      <section id="sec-documentos" data-secao="documentos" hidden>
+        <div class="cab-secao">
+          <div><h1>Documentos e papel timbrado</h1><p>Gere papel timbrado em branco ou escreva ofícios, declarações e comunicados já no timbrado da Hessel.</p></div>
+        </div>
+        <div class="cartao">
+          <h2>Papel timbrado em branco</h2>
+          <div class="linha">
+            <select id="tb-orientacao" style="width:auto"><option value="retrato">A4 retrato</option><option value="paisagem">A4 paisagem</option></select>
+            <select id="tb-paginas" style="width:auto"><option value="1">1 página</option><option value="2">2 páginas</option><option value="5">5 páginas</option><option value="10">10 páginas</option></select>
+            <button class="btn" id="tb-gerar">⬇ Gerar PDF</button>
+          </div>
+        </div>
+        <div class="doc-grid">
+          <div class="cartao">
+            <div class="linha entre"><h3 style="margin:0">Documentos salvos</h3><button class="btn peq" id="doc-novo">＋ Novo</button></div>
+            <input type="search" id="doc-busca" placeholder="Buscar…" style="margin:.7em 0">
+            <div class="lista-docs" id="doc-lista"></div>
+          </div>
+          <div class="cartao">
+            <form id="doc-form">
+              <div class="grade-form">
+                <div class="inteiro">
+                  <label class="rotulo" for="doc-modelo">Começar a partir de um modelo</label>
+                  <select id="doc-modelo"><option value="">— em branco —</option></select>
+                </div>
+                <div class="inteiro"><label class="rotulo" for="doc-titulo">Título</label><input type="text" id="doc-titulo" required placeholder="Ex.: Declaração de prestação de serviço"></div>
+                <div class="inteiro"><label class="rotulo" for="doc-dest">Destinatário <small>(opcional)</small></label><textarea id="doc-dest" style="min-height:3.5em" placeholder="Ao(À) Sr(a). …"></textarea></div>
+                <div class="inteiro"><label class="rotulo" for="doc-corpo">Texto <small>(deixe uma linha em branco entre os parágrafos)</small></label><textarea id="doc-corpo" style="min-height:16em"></textarea></div>
+                <div><label class="rotulo" for="doc-local">Local e data <small>(vazio = data de hoje)</small></label><input type="text" id="doc-local" placeholder="São Paulo, 5 de outubro de 2026"></div>
+                <div><label class="rotulo" for="doc-ass">Assinatura <small>(nome na 1ª linha, cargo na 2ª)</small></label><textarea id="doc-ass" style="min-height:3.5em"></textarea></div>
+              </div>
+              <div class="linha fim" style="margin-top:1em">
+                <button type="button" class="btn perigo" id="doc-excluir" hidden>Excluir</button>
+                <button type="button" class="btn sec" id="doc-previa">👁 Pré-visualizar PDF</button>
+                <button type="submit" class="btn">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/conferencia.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

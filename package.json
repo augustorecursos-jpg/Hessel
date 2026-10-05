@@ -1,0 +1,22 @@
+{
+  "name": "hessel-domiciliar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hessel Domiciliar - fechamento de folhas e produtividade: cadastros, planilha de atendimento, conferência de folhas e papel timbrado",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --no-warnings server.js",
+    "dev": "node --no-warnings --watch server.js",
+    "seed": "node --no-warnings scripts/seed-demo.js",
+    "test": "node --no-warnings --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "pdf-lib": "^1.17.1"
+  }
+}

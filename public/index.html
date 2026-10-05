@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hessel Domiciliar · Entrar</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+  <main class="login">
+    <div class="caixa">
+      <img src="/logo" alt="Hessel Domiciliar">
+      <h1 style="font-size:1.15rem;margin:0">Fechamento de folhas e produtividade</h1>
+      <form id="form-login">
+        <div>
+          <label class="rotulo" for="login">Usuário</label>
+          <input type="text" id="login" autocomplete="username" required>
+        </div>
+        <div>
+          <label class="rotulo" for="senha">Senha</label>
+          <input type="password" id="senha" autocomplete="current-password" required>
+        </div>
+        <p class="erro" id="erro" role="alert"></p>
+        <button class="btn" type="submit">Entrar</button>
+      </form>
+    </div>
+  </main>
+  <script src="js/comum.js"></script>
+  <script>
+    // Já logado? vai direto para o sistema.
+    fetch('/api/eu').then((r) => r.ok && (location.href = '/app'));
+    $('#form-login').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('#erro').textContent = '';
+      const btn = e.submitter; btn.disabled = true;
+      try {
+        await api('/api/login', { method: 'POST', body: { login: $('#login').value, senha: $('#senha').value } });
+        location.href = '/app';
+      } catch (err) {
+        $('#erro').textContent = err.message;
+      } finally { btn.disabled = false; }
+    });
+  </script>
+</body>
+</html>
