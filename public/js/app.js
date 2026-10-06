@@ -809,10 +809,14 @@ async function importarCadastro(tipo, input) {
     const itens = linhas.map((l) => Object.fromEntries(Object.entries(mapa).filter(([, col]) => col).map(([campo, col]) => [campo, normalizarImport(campo, l[col])])))
       .filter((i) => i.nome);
     const reconhecidas = Object.entries(mapa).filter(([, c]) => c).map(([k]) => rotuloCampo(tipo, k));
+    const contagem = new Map();
+    for (const i of itens) { const k = Conferencia.normalizar(i.nome); contagem.set(k, [...(contagem.get(k) || []), i.nome]); }
+    const repetidos = [...contagem.values()].filter((v) => v.length > 1).map((v) => v[0]);
     const m = modal(`<h2>Importar ${def.titulo.toLowerCase()}</h2>
       <p><b>${itens.length}</b> registro(s) encontrados em <i>${esc(arq.name)}</i>.</p>
       <p class="suave">Colunas reconhecidas: ${esc(reconhecidas.join(', '))}.<br>
       Nomes já cadastrados são atualizados (só os campos preenchidos na planilha); os demais são incluídos.</p>
+      ${repetidos.length ? `<div class="aviso-box alerta">${ic('alerta')}<span><b>${repetidos.length} nome(s) aparecem mais de uma vez</b> na planilha e serão unidos em um único cadastro: ${esc(repetidos.slice(0, 5).join(', '))}${repetidos.length > 5 ? '…' : ''}</span></div>` : ''}
       <div class="tabela-wrap" style="max-height:40vh"><table class="t"><thead><tr>${Object.keys(mapa).filter((k) => mapa[k]).map((k) => `<th>${esc(rotuloCampo(tipo, k))}</th>`).join('')}</tr></thead>
         <tbody>${itens.slice(0, 50).map((i) => `<tr>${Object.keys(mapa).filter((k) => mapa[k]).map((k) => `<td style="white-space:nowrap">${esc(fmtCampo(k, i[k]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
       ${itens.length > 50 ? `<p class="suave">… e mais ${itens.length - 50}.</p>` : ''}

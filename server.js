@@ -262,13 +262,16 @@ for (const [tabela, def] of Object.entries(CADASTROS)) {
         const atual = existentes.get(chaveNome(item.nome));
         if (atual) {
           // Só preenche o que veio na planilha; não apaga dados já cadastrados.
-          const mesclado = def.campos.map((c) => item[c] ?? atual[c]);
+          // Mantém a grafia do nome já cadastrado (é a que vale para os arquivos das folhas).
+          const mesclado = def.campos.map((c) => (c === 'nome' ? atual.nome : item[c] ?? atual[c] ?? null));
+          Object.assign(atual, Object.fromEntries(def.campos.map((c, i) => [c, mesclado[i]])));
           db.prepare(`UPDATE ${tabela} SET ${def.campos.map((c) => `${c} = ?`).join(', ')}, ativo = 1, atualizado_em = datetime('now') WHERE id = ?`)
             .run(...mesclado, atual.id);
           atualizados++;
         } else {
-          db.prepare(`INSERT INTO ${tabela} (${def.campos.join(', ')}) VALUES (${def.campos.map(() => '?').join(', ')})`).run(...def.campos.map((c) => item[c]));
-          existentes.set(chaveNome(item.nome), { nome: item.nome });
+          const r = db.prepare(`INSERT INTO ${tabela} (${def.campos.join(', ')}) VALUES (${def.campos.map(() => '?').join(', ')})`).run(...def.campos.map((c) => item[c]));
+          // Guarda o registro completo: o mesmo nome pode aparecer de novo mais abaixo na planilha.
+          existentes.set(chaveNome(item.nome), { ...item, id: Number(r.lastInsertRowid) });
           novos++;
         }
       }

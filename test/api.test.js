@@ -29,6 +29,12 @@ test('fluxo completo', async (t) => {
   assert.equal((await req('POST', '/api/pacientes', { nome: 'maria  SOUZA' })).status, 409);
   const imp = (await req('POST', '/api/profissionais/importar', { itens: [{ nome: 'Ana Lima', categoria: 'Cuidador(a)' }, { nome: '' }] })).dados;
   assert.deepEqual(imp, { novos: 1, atualizados: 0, ignorados: 1 });
+  // nome repetido na mesma planilha: o segundo atualiza o primeiro, sem erro
+  const rep = (await req('POST', '/api/pacientes/importar', { itens: [{ nome: 'Aldemir Rodrigues', convenio: 'Sulamérica' }, { nome: 'aldemir  rodrigues', telefone: '1199' }] })).dados;
+  assert.deepEqual(rep, { novos: 1, atualizados: 1, ignorados: 0 });
+  const ald = (await req('GET', '/api/pacientes')).dados.find((x) => x.nome === 'Aldemir Rodrigues');
+  assert.equal(ald.convenio, 'Sulamérica');
+  assert.equal(ald.telefone, '1199');
   const r = (await req('GET', '/api/profissionais')).dados[0].id;
 
   const linha = (await req('POST', '/api/atendimentos', { competencia: '2026-02', paciente_id: p, profissional_id: r })).dados.id;
