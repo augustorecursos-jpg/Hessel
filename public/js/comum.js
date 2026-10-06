@@ -148,8 +148,14 @@ function exportarXlsx(nomeArquivo, { aba = 'Planilha', cabecalho = [], colunas, 
 /** Lê a primeira aba de um .xlsx/.csv e devolve objetos com as chaves em minúsculas sem acento. */
 async function lerPlanilha(arquivo) {
   const buf = await arquivo.arrayBuffer();
-  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  const wb = XLSX.read(buf, { type: 'array', cellNF: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
+  // Datas do Excel viram AAAA-MM-DD (o formato padrão de data é lido como m/d/aa e trocaria dia e mês).
+  for (const [ref, cel] of Object.entries(ws)) {
+    if (ref[0] === '!' || cel.t !== 'n' || !cel.z || !XLSX.SSF.is_date(cel.z)) continue;
+    const d = XLSX.SSF.parse_date_code(cel.v);
+    if (d) cel.w = `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
+  }
   const linhas = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
   const chave = (k) => String(k).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   return linhas.map((l) => Object.fromEntries(Object.entries(l).map(([k, v]) => [chave(k), String(v).trim()])));

@@ -637,7 +637,12 @@ const CADASTRO = {
     ],
     colunas: ['nome', 'cpf', 'telefone', 'nascimento'],
     // Nomes de coluna aceitos na importação do Excel
-    sinonimos: { nome: ['nome', 'paciente', 'nome_do_paciente', 'nome_paciente'], cpf: ['cpf'], nascimento: ['nascimento', 'data_de_nascimento', 'data_nascimento', 'dt_nascimento'], telefone: ['telefone', 'celular', 'contato', 'fone'], responsavel: ['responsavel', 'familiar'], convenio: ['convenio', 'operadora', 'plano'], endereco: ['endereco', 'endereco_completo'], observacoes: ['observacoes', 'observacao', 'obs'] },
+    modelo: {
+      colunas: ['NOME', 'CPF', 'DATA DE NASCIMENTO', 'TELEFONE', 'RESPONSÁVEL', 'CONVÊNIO', 'ENDEREÇO', 'OBSERVAÇÕES'],
+      exemplos: [['Maria da Silva Souza', '123.456.789-09', '03/05/1945', '(11) 99999-0000', 'Ana Souza (filha)', 'Unimed', 'Rua das Flores, 100 - Centro', ''],
+        ['José Carlos Pereira', '', '', '', '', 'Particular', '', '']],
+    },
+    sinonimos: { nome: ['nome', 'nome_completo', 'paciente', 'nome_do_paciente', 'nome_paciente'], cpf: ['cpf'], nascimento: ['nascimento', 'data_de_nascimento', 'data_nascimento', 'dt_nascimento'], telefone: ['telefone', 'celular', 'contato', 'fone'], responsavel: ['responsavel', 'familiar'], convenio: ['convenio', 'operadora', 'plano'], endereco: ['endereco', 'endereco_completo'], observacoes: ['observacoes', 'observacao', 'obs'] },
   },
   profissionais: {
     titulo: 'Profissionais', singular: 'profissional', icone: 'estetoscopio',
@@ -653,7 +658,12 @@ const CADASTRO = {
       { k: 'observacoes', rot: 'Observações', inteiro: true, area: true },
     ],
     colunas: ['nome', 'categoria', 'registro', 'telefone'],
-    sinonimos: { nome: ['nome', 'profissional', 'prestador', 'nome_do_profissional', 'nome_profissional'], categoria: ['categoria', 'funcao', 'cargo', 'especialidade', 'profissao'], registro: ['registro', 'coren', 'crefito', 'conselho', 'registro_profissional'], cpf: ['cpf'], telefone: ['telefone', 'celular', 'contato', 'fone'], email: ['email', 'e_mail'], chave_pix: ['chave_pix', 'pix', 'dados_bancarios', 'banco'], observacoes: ['observacoes', 'observacao', 'obs'] },
+    modelo: {
+      colunas: ['NOME', 'CATEGORIA', 'REGISTRO', 'CPF', 'TELEFONE', 'E-MAIL', 'CHAVE PIX', 'OBSERVAÇÕES'],
+      exemplos: [['Ana Paula Rodrigues', 'Técnico(a) de enfermagem', 'COREN-SP 123456', '987.654.321-00', '(11) 98888-0000', 'ana@email.com', 'ana@email.com', ''],
+        ['Carlos Eduardo Santos', 'Fisioterapeuta', '', '', '', '', '', '']],
+    },
+    sinonimos: { nome: ['nome', 'nome_completo', 'profissional', 'prestador', 'nome_do_profissional', 'nome_profissional'], categoria: ['categoria', 'funcao', 'cargo', 'especialidade', 'profissao'], registro: ['registro', 'coren', 'crefito', 'conselho', 'registro_profissional'], cpf: ['cpf'], telefone: ['telefone', 'celular', 'contato', 'fone'], email: ['email', 'e_mail'], chave_pix: ['chave_pix', 'pix', 'dados_bancarios', 'banco'], observacoes: ['observacoes', 'observacao', 'obs'] },
   },
 };
 let plLinhasMes = [];
@@ -675,6 +685,7 @@ function renderCadastro(tipo) {
         <div class="acoes">
           <button class="btn" data-acao="novo">${ic('mais')} Novo ${def.singular}</button>
           <label class="btn sec"><input type="file" accept=".xlsx,.xls,.csv" data-acao="importar" hidden>${ic('enviar')} Importar Excel</label>
+          <button class="btn fantasma" data-acao="modelo" title="Planilha com as colunas aceitas na importação">${ic('baixar')} Baixar modelo</button>
         </div>
       </div>
       <div class="cards" data-kpis></div>
@@ -691,6 +702,10 @@ function renderCadastro(tipo) {
     $('[data-acao="inativos"]', sec).addEventListener('change', (e) => { filtroCad[tipo].inativos = e.target.checked; desenharTabelaCad(tipo); });
     $('[data-acao="importar"]', sec).addEventListener('change', (e) => importarCadastro(tipo, e.target));
     $('[data-acao="xlsx"]', sec).addEventListener('click', () => exportarCad(tipo, 'xlsx'));
+    $('[data-acao="modelo"]', sec).addEventListener('click', () => {
+      const m = def.modelo;
+      exportarXlsx(`Modelo de importação - ${def.titulo}.xlsx`, { aba: def.titulo, colunas: m.colunas.map((t) => ({ titulo: t, largura: t === 'NOME' || t === 'ENDEREÇO' ? 36 : 20 })), linhas: m.exemplos });
+    });
     $('[data-acao="pdf"]', sec).addEventListener('click', () => exportarCad(tipo, 'pdf'));
   }
   return Promise.all([carregarCadastros(), api(`/api/atendimentos?competencia=${estado.comp}`).then((r) => { plLinhasMes = r; })])
@@ -799,7 +814,7 @@ async function importarCadastro(tipo, input) {
       <p class="suave">Colunas reconhecidas: ${esc(reconhecidas.join(', '))}.<br>
       Nomes já cadastrados são atualizados (só os campos preenchidos na planilha); os demais são incluídos.</p>
       <div class="tabela-wrap" style="max-height:40vh"><table class="t"><thead><tr>${Object.keys(mapa).filter((k) => mapa[k]).map((k) => `<th>${esc(rotuloCampo(tipo, k))}</th>`).join('')}</tr></thead>
-        <tbody>${itens.slice(0, 50).map((i) => `<tr>${Object.keys(mapa).filter((k) => mapa[k]).map((k) => `<td>${esc(i[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <tbody>${itens.slice(0, 50).map((i) => `<tr>${Object.keys(mapa).filter((k) => mapa[k]).map((k) => `<td style="white-space:nowrap">${esc(fmtCampo(k, i[k]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
       ${itens.length > 50 ? `<p class="suave">… e mais ${itens.length - 50}.</p>` : ''}
       <div class="rodape-modal"><button class="btn sec" data-fechar>Cancelar</button><button class="btn" id="b-imp">Importar</button></div>`);
     $('#b-imp', m.el).addEventListener('click', async () => {
