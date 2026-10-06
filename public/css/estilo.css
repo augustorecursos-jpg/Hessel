@@ -215,6 +215,8 @@ table.t td.acoes .btn + .btn { margin-left: .3em; }
 .lateral .cartao-usuario b { display: block; font-family: var(--titulo); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lateral .cartao-usuario small { color: rgba(232, 245, 242, .65); font-size: .78rem; }
 .lateral .cartao-usuario button { background: transparent; border: 0; color: rgba(255,255,255,.75); padding: .35em; border-radius: 8px; cursor: pointer; }
+.lateral .assinatura { text-align: center; font-size: .72rem; color: rgba(232, 245, 242, .5); margin-top: .7em; letter-spacing: .04em; }
+.lateral .assinatura b { color: rgba(232, 245, 242, .85); }
 .lateral .cartao-usuario button:hover { background: rgba(255,255,255,.12); color: #fff; }
 
 .principal { min-width: 0; display: flex; flex-direction: column; }
@@ -256,7 +258,7 @@ table.t td.acoes .btn + .btn { margin-left: .3em; }
   .lateral .marca img { width: 40px; }
   .lateral nav { flex-direction: row; }
   .lateral nav a { white-space: nowrap; padding: .5em .75em; }
-  .lateral .grupo, .lateral .cartao-usuario div, .lateral .cartao-usuario .av { display: none; }
+  .lateral .grupo, .lateral .cartao-usuario div, .lateral .cartao-usuario .av, .lateral .assinatura { display: none; }
   .lateral .cartao-usuario { margin: 0 0 0 auto; padding: .2em; }
   .topo { position: static; padding: .7em 1em; }
   .conteudo { padding: 1em 1em 3em; }
@@ -384,7 +386,9 @@ table.planilha tfoot td.fixa { z-index: 3; background: var(--menta-100); padding
 .login form { display: grid; gap: 1em; margin-top: 1.6em; background: var(--papel); border: 1px solid var(--borda); border-radius: 20px; padding: 1.6em; box-shadow: var(--sombra-3); }
 .login form .btn { padding: .8em; font-size: 1rem; }
 .login .erro { color: var(--vermelho); font-size: .9rem; min-height: 1.2em; margin: 0; }
-.login .rodape-login { text-align: center; font-size: .8rem; color: var(--suave); margin-top: 1.4em; }
+.login .rodape-login { text-align: center; font-size: .82rem; color: var(--suave); margin-top: 1.4em; line-height: 1.7; }
+.login .rodape-login a { font-weight: 700; }
+.login .rodape-login b { color: var(--teal-800); }
 @media (max-width: 860px) {
   .login { grid-template-columns: 1fr; }
   .login .marca-lado { padding: 2em 1.4em; gap: 1em; }

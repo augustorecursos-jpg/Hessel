@@ -31,6 +31,14 @@ cadastros, planilha de atendimento, conferência das folhas salvas na pasta e do
 - **Auditoria**: quem fez o quê e quando (com exportação para Excel).
 - **Sistema e backup**: números gerais, histórico de conferências, **backup do banco** e exclusão de uma competência.
 
+## Guia de acesso (e-book)
+
+- **Web:** `/guia`, público (sem login), com o link **"Primeira vez aqui? Veja o guia de acesso"** na tela de entrada e o item **Guia de uso** no menu. É o link para enviar junto com o acesso.
+- **PDF:** `public/guia/Guia-Hessel-Domiciliar.pdf` (11 páginas A4), também em `/guia/Guia-Hessel-Domiciliar.pdf`.
+- **Atualizar:** edite `public/guia.html` e gere o PDF de novo com `node scripts/gerar-guia-pdf.js` (precisa do Playwright; o script avisa se alguma página passar do tamanho da folha). As imagens ficam em `public/guia/img`.
+
+Uma solução **AR Consultoria**.
+
 ## Como rodar
 
 Requisito: **Node.js 22.13+** (usa o SQLite nativo do Node, sem banco externo).

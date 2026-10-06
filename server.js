@@ -621,6 +621,8 @@ app.delete('/api/admin/competencia/:c', exigirAdmin, (req, res) => {
 });
 
 // ---------- estáticos ----------
+// Guia de uso: público, para enviar junto com o acesso (a pasta public/guia guarda o PDF e as imagens).
+app.get('/guia', (req, res) => res.sendFile(path.join(__dirname, 'public/guia.html')));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 app.use('/api', (req, res) => res.status(404).json({ erro: 'Rota não encontrada.' }));
 
